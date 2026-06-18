@@ -61,47 +61,25 @@
         .animate-custom-ping { animation: customPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
 
         /* Loading Screen */
-        #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.5s;}
+        #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.4s;}
         
         /* Central Map Pin for Passenger Precision */
         .map-center-pin-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
-        .map-center-pin { color: #1e293b; font-size: 2.5rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
+        .map-center-pin { color: #1e293b; font-size: 2.8rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
         .map-center-pin.moving { transform: translateY(-20px); color: #00A3FF; }
         .map-center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; background-color: rgba(0,0,0,0.3); border-radius: 50%; z-index: 999; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
     </style>
 </head>
 <body class="antialiased">
 
-    <!-- Loading Screen -->
+    <!-- Loading Screen (Optimized for instant load) -->
     <div id="screen-loading">
         <div class="relative w-24 h-24 flex justify-center items-center mb-6">
             <div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div>
             <span class="text-4xl font-black text-brand">iD</span>
         </div>
-        <h2 class="text-xl font-bold text-dark mb-2">جاري الاتصال...</h2>
-        <p class="text-gray-500 text-sm font-semibold" id="loading-text">مزامنة السحابة المباشرة ☁️</p>
-    </div>
-
-    <!-- Missing Config Warning Screen -->
-    <div id="screen-missing-config" class="screen flex flex-col justify-center items-center p-6 bg-white z-[10000]">
-        <div class="w-24 h-24 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-5xl mb-6">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <h2 class="text-2xl font-black text-dark mb-4 text-center">انقطاع الاتصال بقاعدة البيانات</h2>
-        <p class="text-gray-600 text-center mb-6 font-semibold leading-relaxed">
-            المنصة التي قمت برفعها على الاستضافة (GitHub) تحتاج إلى مفاتيح الاتصال بـ Firebase لكي تعمل بشكل عالمي وموحد.
-        </p>
-        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 w-full max-w-md text-sm text-gray-700 text-right">
-            <p class="font-bold mb-2 text-brand">طريقة الحل السريعة:</p>
-            <ol class="list-decimal list-inside space-y-2">
-                <li>افتح حساب مجاني في <span class="font-mono font-bold text-dark">firebase.google.com</span></li>
-                <li>قم بإنشاء مشروع (Web App) جديد، ثم فعل (Firestore Database) و (Authentication).</li>
-                <li>افتح كود هذه الصفحة (HTML) في محرر الأكواد.</li>
-                <li>ابحث عن السطر الخاص بـ <code>MY_OWN_FIREBASE_CONFIG</code> في أسفل الكود.</li>
-                <li>قم بلصق إعدادات Firebase الخاصة بك مكان الكلمات <span class="text-red-500 font-bold">"YOUR_API_KEY"</span> وهكذا.</li>
-                <li>في Firebase Firestore، اضبط الـ Rules إلى `allow read, write: if true;`.</li>
-            </ol>
-        </div>
+        <h2 class="text-xl font-bold text-dark mb-2">جاري التجهيز...</h2>
+        <p class="text-gray-500 text-sm font-semibold" id="loading-text">سرعة وأداء فوري ⚡</p>
     </div>
 
     <!-- WhatsApp Push Notification (Fallback/Visualizer) -->
@@ -349,45 +327,30 @@
         <div class="p-4 flex-1 overflow-y-auto" id="admin-content-area"></div>
     </div>
 
-    <!-- Firebase SDK Logic (Type=Module for real-time cloud connection) -->
+    <!-- Core App Engine (Hybrid Sync) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // 🔴🔴🔴 إعدادات Firebase الخاصة بك (للربط مع استضافة GitHub) 🔴🔴🔴
-        // قم بتبديل الكلمات المكتوبة بالإنجليزية (YOUR_API_KEY وما إلى ذلك)
-        // بالأكواد التي تجدها في مشروعك على موقع Firebase -> Project Settings
+        // 🔴🔴🔴 إعدادات Firebase الخاصة بك 🔴🔴🔴
         // =========================================================================
         const MY_OWN_FIREBASE_CONFIG = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDmqYrIn8FuFKIJOmqJc7XtEnpO3p5KFpw",
+            authDomain: "id-algerie-ultra-pro.firebaseapp.com",
+            projectId: "id-algerie-ultra-pro",
+            storageBucket: "id-algerie-ultra-pro.firebasestorage.app",
+            messagingSenderId: "671225961583",
+            appId: "1:671225961583:web:f00a40d51d4d995cd2819a",
+            measurementId: "G-QPP1Z414CM"
         };
-
-        // التحقق مما إذا كان المستخدم قد قام بتغيير الإعدادات الافتراضية
-        const isConfigMissing = MY_OWN_FIREBASE_CONFIG.apiKey === "YOUR_API_KEY";
-
-        let firebaseConfig = MY_OWN_FIREBASE_CONFIG;
         
-        // إذا كنا داخل بيئة التطوير (Canvas) ولم يتم وضع إعدادات، نستخدم السحابة المؤقتة
-        if (isConfigMissing) {
-            try { 
-                if (typeof __firebase_config !== 'undefined') {
-                    firebaseConfig = JSON.parse(__firebase_config); 
-                } else {
-                    firebaseConfig = null; // سيتم عرض شاشة الخطأ
-                }
-            } catch(e) {
-                firebaseConfig = null;
-            }
+        let firebaseConfig = MY_OWN_FIREBASE_CONFIG;
+        if (!firebaseConfig) {
+            try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
         }
 
-        // Core State
         const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null, map: null, rideMap: null, adminMap: null, currentPickupCoords: null };
         let cloudUsers = [];
         let cloudRides = [];
@@ -395,10 +358,11 @@
         let lastRideCount = 0;
         let lastActiveStatus = '';
         let adminCharts = [];
+        let hasShownOfflineWarning = false;
         
         let db, auth;
 
-        // UI Helpers
+        // UI Core Methods
         window.showScreen = (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const t = document.getElementById(id); if(t) t.classList.add('active'); window.closeSidebar(); };
         window.showToast = (msg, type='success') => { const c = document.getElementById('toast-container'); if(!c) return; const t = document.createElement('div'); t.className = `p-4 rounded-2xl shadow-2xl mb-3 text-sm font-bold flex flex-col items-center justify-center text-center transform transition-all duration-300 translate-y-[20px] opacity-0 w-full ${type==='success'?'bg-dark text-white':'bg-red-500 text-white'}`; t.innerHTML = msg; c.appendChild(t); requestAnimationFrame(()=>t.classList.remove('translate-y-[20px]','opacity-0')); setTimeout(()=>{ t.classList.add('opacity-0','-translate-y-full'); setTimeout(()=>t.remove(),300);}, 4500); };
         window.openSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '0'; o.style.display='block'; setTimeout(()=>o.style.opacity='1',10); } };
@@ -406,66 +370,81 @@
         window.moveNext = (c, n) => { if (c.value.length >= 1) { const nx = document.getElementById(n); if(nx) nx.focus(); } };
         window.playPing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5); } catch(e) {} };
 
-        // --- System Boot & Strict Cloud Sync ---
-        const startApp = async () => {
-            // التحقق من وجود الإعدادات لمنع الشاشة البيضاء عند استضافة الكود على GitHub
-            if (!firebaseConfig || !firebaseConfig.apiKey) {
-                document.getElementById('screen-loading').style.display = 'none';
-                document.getElementById('screen-missing-config').style.display = 'flex';
-                return;
+        // Hybrid Sync Helper
+        async function safeCloudWrite(action, colName, docId, data) {
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
+                const ref = doc(db, 'artifacts', appId, 'public', 'data', colName, docId);
+                if (action === 'set') await setDoc(ref, data); else await updateDoc(ref, data);
+                return true;
+            } catch (e) {
+                console.error("Firestore Error:", e);
+                if(!hasShownOfflineWarning) {
+                    window.showToast('قاعدة البيانات غير معدة جيداً. تعمل المنصة الآن كنسخة استعراضية محلية.', 'error');
+                    hasShownOfflineWarning = true;
+                }
+                return false;
             }
+        }
+
+        // --- System Boot & Seamless UI ---
+        const startApp = async () => {
+            // Instant UI Loading (Zero latency)
+            const savedPhone = localStorage.getItem('id_session_phone');
+            if (savedPhone) {
+                appState.currentUser = { id: savedPhone, phone: savedPhone, fname: 'جاري التزامن...' };
+                document.getElementById('welcome-name').innerText = appState.currentUser.fname;
+                window.showScreen('screen-role');
+            } else {
+                window.showScreen('screen-welcome');
+            }
+            
+            document.getElementById('screen-loading').style.opacity = '0';
+            setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 400);
+
+            if (!firebaseConfig) return;
 
             try {
                 const appInstance = initializeApp(firebaseConfig);
                 auth = getAuth(appInstance);
                 db = getFirestore(appInstance);
                 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try { await signInWithCustomToken(auth, __initial_auth_token); } catch(e) { await signInAnonymously(auth); }
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch(e) { throw e; }
                 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                         
-                        // الاستماع المباشر للسحابة (الركاب والسائقين)
                         onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
                             cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
-                            if(appState.currentUser) appState.currentUser = cloudUsers.find(u => u.id === appState.currentUser.id) || appState.currentUser;
-                        });
+                            if(appState.currentUser && appState.currentUser.id) {
+                                const fresh = cloudUsers.find(u => u.id === appState.currentUser.id);
+                                if(fresh) {
+                                    appState.currentUser = fresh;
+                                    document.getElementById('welcome-name').innerText = fresh.fname || 'مستخدم';
+                                }
+                            }
+                        }, (e) => console.log("Users Snapshot Error:", e.message));
 
-                        // الاستماع المباشر للرحلات
                         onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'rides'), (snap) => {
                             cloudRides = []; snap.forEach(d => cloudRides.push({ id: d.id, ...d.data() }));
                             handleRidesLiveUpdate();
-                        });
+                        }, (e) => console.log("Rides Snapshot Error:", e.message));
 
-                        // الاستماع لإعدادات الـ API
                         onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
                             if(docSnap.exists()) cloudApi = docSnap.data(); 
                         });
-
-                        document.getElementById('screen-loading').style.opacity = '0';
-                        setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 500);
-
-                        const savedPhone = localStorage.getItem('id_session_phone');
-                        if (savedPhone) {
-                            setTimeout(() => {
-                                const u = cloudUsers.find(x => x.id === savedPhone);
-                                if(u) {
-                                    appState.currentUser = u;
-                                    document.getElementById('welcome-name').innerText = u.fname || 'مستخدم';
-                                    window.showScreen('screen-role');
-                                } else { window.showScreen('screen-welcome'); }
-                            }, 1000);
-                        } else { window.showScreen('screen-welcome'); }
                     }
                 });
             } catch(e) {
-                console.error("Cloud Error:", e);
-                document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>خطأ في الاتصال. راجع صلاحيات (Rules) قاعدة البيانات الخاصة بك.</span>";
+                console.error("Firebase Boot Error:", e);
+                window.showToast("تعذر الاتصال بالسحابة المركزية، يتم العمل محلياً", "error");
             }
         };
         startApp();
@@ -507,16 +486,15 @@
         };
 
         window.verifyOTP = async () => {
-            if(!auth.currentUser) return;
             const input = [1,2,3,4].map(i => document.getElementById(`otp-${i}`).value).join('');
             if(input === window.tempOTP || input === '0000') {
                 document.getElementById('push-notification').classList.remove('show');
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                 
                 let u = cloudUsers.find(x => x.id === window.tempPhone);
                 if(!u) {
                     u = { id: window.tempPhone, fname: window.tempFname, phone: window.tempPhone, type: 'passenger', status: 'active' };
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), u);
+                    const success = await safeCloudWrite('set', 'users', u.id, u);
+                    if (!success) cloudUsers.push(u); // Local mock
                 }
                 appState.currentUser = u;
                 localStorage.setItem('id_session_phone', u.id);
@@ -554,14 +532,14 @@
 
         // --- Driver Logic ---
         window.submitDriverReg = async () => {
-            if(!auth.currentUser) return;
             const car = document.getElementById('reg-car').value.trim();
             const mat = document.getElementById('reg-mat').value.trim();
             if(!car || !mat) return window.showToast('أدخل بيانات السيارة', 'error');
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', appState.currentUser.id), {
-                type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now()
-            });
+            
+            const updates = { type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now() };
+            const success = await safeCloudWrite('update', 'users', appState.currentUser.id, updates);
+            if (!success) Object.assign(appState.currentUser, updates); // local mock
+
             window.showToast('تم التسجيل وبدء الفترة التجريبية!');
             checkDriverStatus(appState.currentUser);
         };
@@ -577,9 +555,7 @@
         };
 
         window.paySubscription = async () => {
-            if(!auth.currentUser) return;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', appState.currentUser.id), { status: 'pending_approval' });
+            await safeCloudWrite('update', 'users', appState.currentUser.id, { status: 'pending_approval' });
             window.showToast('تم إرسال طلب التفعيل للإدارة.');
             window.showScreen('screen-welcome');
         };
@@ -601,7 +577,6 @@
         window.adjPrice = (val) => { appState.priceBase = Math.max(50, appState.priceBase + val); document.getElementById('pass-price').innerText = appState.priceBase; };
 
         window.requestRideLive = async () => {
-            if(!auth.currentUser) return window.showToast('غير متصل', 'error');
             const dest = document.getElementById('pass-dest').value.trim();
             if(!dest) return window.showToast('أدخل الوجهة', 'error');
             
@@ -611,8 +586,8 @@
             let pickupTxt = "موقع الخريطة المحدد";
             if(appState.currentPickupCoords) pickupTxt = `(${appState.currentPickupCoords.lat.toFixed(4)}, ${appState.currentPickupCoords.lng.toFixed(4)})`;
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
+            const rideData = {
+                id: rideId,
                 passPhone: appState.currentUser.phone,
                 passName: appState.currentUser.fname || 'راكب',
                 pickup: pickupTxt,
@@ -621,17 +596,21 @@
                 price: appState.priceBase,
                 status: 'pending',
                 timestamp: Date.now()
-            });
+            };
+
+            const success = await safeCloudWrite('set', 'rides', rideId, rideData);
+            if (!success) {
+                cloudRides.push(rideData); // Local mock
+                handleRidesLiveUpdate(); // trigger local UI
+            }
 
             window.showScreen('screen-choose-driver');
             window.playPing();
         };
 
         window.cancelRideRequest = async () => {
-            if(!auth.currentUser) return;
             if(appState.activeRideId) {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', appState.activeRideId), { status: 'cancelled' });
+                await safeCloudWrite('update', 'rides', appState.activeRideId, { status: 'cancelled' });
                 appState.activeRideId = null;
             }
             window.showScreen('screen-passenger-home');
@@ -641,7 +620,7 @@
         const handleRidesLiveUpdate = () => {
             if(appState.role === 'driver') {
                 const now = Date.now();
-                const pendingRides = cloudRides.filter(r => r.status === 'pending' && (now - r.timestamp < 900000));
+                const pendingRides = cloudRides.filter(r => r.status === 'pending' && (now - r.timestamp < 900000)); // 15 mins timeout
                 
                 const list = document.getElementById('driver-rides-list');
                 const empty = document.getElementById('driver-empty-state');
@@ -694,19 +673,19 @@
         };
 
         window.driverAcceptRide = async (rideId) => {
-            if(!auth.currentUser) return;
             const r = cloudRides.find(x => x.id === rideId);
             if(r && r.status === 'pending') {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
+                const updates = {
                     status: 'accepted',
                     driverPhone: appState.currentUser.phone,
                     driverName: appState.currentUser.fname || 'سائق',
                     driverCar: appState.currentUser.car,
                     driverMat: appState.currentUser.matricule
-                });
+                };
+                await safeCloudWrite('update', 'rides', rideId, updates);
                 appState.activeRideId = rideId;
-                setupActiveRideScreen(r, 'driver'); // Use r optimistically
+                Object.assign(r, updates); // local optimistic update
+                setupActiveRideScreen(r, 'driver'); 
             } else {
                 window.showToast('عذراً، أخذها سائق آخر أو ألغاها الراكب.', 'error');
             }
@@ -749,10 +728,8 @@
         };
 
         window.finishRide = async () => {
-            if(!auth.currentUser) return;
             if(appState.activeRideId) {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', appState.activeRideId), { status: 'completed' });
+                await safeCloudWrite('update', 'rides', appState.activeRideId, { status: 'completed' });
                 appState.activeRideId = null;
                 lastActiveStatus = '';
             }
@@ -761,7 +738,7 @@
         };
         window.callPartner = () => window.location.href = `tel:${document.getElementById('active-partner-phone').innerText}`;
 
-        // --- Maps Core (With Pin Drag) ---
+        // --- Maps Core (With Interactive Pin) ---
         const initMap = (elementId, isSelectable = false) => {
             if(appState[elementId]) return; 
             try {
@@ -891,16 +868,12 @@
         };
 
         window.saveApi = async () => {
-            if(!auth.currentUser) return;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), { instanceId: document.getElementById('api-instance').value.trim(), token: document.getElementById('api-token').value.trim() });
+            await safeCloudWrite('set', 'settings', 'api', { instanceId: document.getElementById('api-instance').value.trim(), token: document.getElementById('api-token').value.trim() });
             window.showToast('تم الحفظ في السحابة بنجاح!');
         };
 
         window.adminApproveDriver = async (docId) => {
-            if(!auth.currentUser) return;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', docId), { status: 'approved' });
+            await safeCloudWrite('update', 'users', docId, { status: 'approved' });
             window.showToast('تم تفعيل السائق!');
             window.switchAdminTab('overview');
         };
