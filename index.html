@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة عبد الكريم السحابية</title>
-    <!-- استدعاء خطوط وتصميم أنيق للمنصة -->
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <!-- استدعاء تصميم أنيق للمنصة -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('[https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap](https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap)');
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap');
         body {
             font-family: 'Cairo', sans-serif;
         }
@@ -64,11 +64,10 @@
 
     <!-- استدعاء مكتبات Firebase السحابية عبر الـ CDN -->
     <script type="module">
-        // استدعاء حزم Firebase الأساسية وقاعدة بيانات Firestore من موزع خدمات الويب
-        import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js)";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 1. كود الاتصال السحابي بمشروعك (مأخوذ مباشرة من إعدادات مشروعك في الصورة)
+        // كود الاتصال السحابي بمشروعك 
         const firebaseConfig = {
             apiKey: "AIzaSyCsoqh7L_lhjKU5U94ra5T5GmoiPGpGWc4",
             authDomain: "myprojectname-1a84b.firebaseapp.com",
@@ -79,7 +78,7 @@
             measurementId: "G-MCZC6CY286"
         };
 
-        // 2. تهيئة الاتصال بفايربيس وقاعدة البيانات
+        // تهيئة الاتصال بفايربيس وقاعدة البيانات
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -90,10 +89,9 @@
         const statusMessage = document.getElementById('statusMessage');
         const messagesContainer = document.getElementById('messagesContainer');
 
-        // مرجع لمجموعة البيانات داخل السحابة (Collection سنطلق عليها اسم "user_messages")
         const messagesCollection = collection(db, "user_messages");
 
-        // 3. كود إرسال البيانات إلى السحابة عند إرسال النموذج
+        // كود إرسال البيانات إلى السحابة عند إرسال النموذج
         dataForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -103,14 +101,12 @@
             showStatus("جاري إرسال بياناتك للسحابة...", "text-orange-400");
 
             try {
-                // إرسال كائن البيانات إلى السحابة
                 await addDoc(messagesCollection, {
                     name: sender,
                     text: message,
-                    timestamp: serverTimestamp() // تسجيل الوقت السحابي لترتيب الرسائل بدقة
+                    timestamp: serverTimestamp()
                 });
 
-                // تصفير الخانات البرمجية بعد نجاح الإرسال
                 messageTextInput.value = '';
                 showStatus("✅ تم حفظ البيانات في السحابة بنجاح!", "text-emerald-400");
                 
@@ -124,18 +120,16 @@
             }
         });
 
-        // دالة مساعدة لتحديث حالة الإرسال
         function showStatus(text, colorClass) {
             statusMessage.className = `mt-3 text-sm text-center ${colorClass}`;
             statusMessage.innerText = text;
         }
 
-        // 4. كود استقبال واستماع البيانات السحابية الحية (Live Stream)
-        // سيقوم هذا الكود بتحديث الواجهة تلقائياً وبسرعة بمجرد إضافة بيانات جديدة في السحابة
+        // كود استقبال واستماع البيانات السحابية الحية (Live Stream)
         const q = query(messagesCollection, orderBy("timestamp", "desc"));
         
         onSnapshot(q, (snapshot) => {
-            messagesContainer.innerHTML = ''; // تفريغ الحاوية قبل التحديث
+            messagesContainer.innerHTML = '';
 
             if (snapshot.empty) {
                 messagesContainer.innerHTML = `
@@ -150,7 +144,6 @@
                 const messageCard = document.createElement('div');
                 messageCard.className = "bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-1";
                 
-                // صياغة الوقت بشكل مبسط
                 const timeString = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : 'الآن';
 
                 messageCard.innerHTML = `
@@ -164,10 +157,9 @@
             });
         }, (error) => {
             console.error("فشل الاستماع للبيانات السحابية:", error);
-            messagesContainer.innerHTML = `<div class="text-rose-400 text-center py-8">خطأ في جلب البيانات: ${error.message}</div>`;
+            messagesContainer.innerHTML = `<div class="text-rose-400 text-center py-8">خطأ في الصلاحيات! يرجى التأكد من تغيير قواعد الحماية (Rules) إلى true كما هو مشروح في الخطوة 1.</div>`;
         });
 
-        // دالة حماية لمنع إدخال أكواد خبيثة (XSS Protection)
         function escapeHTML(str) {
             if (!str) return '';
             return str.replace(/[&<>'"]/g, 
