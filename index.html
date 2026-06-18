@@ -57,7 +57,7 @@
 
         #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.5s;}
         
-        /* Central Map Pin for precision */
+        /* Central Map Pin for passenger location selection */
         .map-center-pin-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
         .map-center-pin { color: #00A3FF; font-size: 3rem; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); transition: transform 0.2s ease; }
         .map-center-pin.moving { transform: translateY(-15px); color: #007BFF; }
@@ -74,6 +74,28 @@
         </div>
         <h2 class="text-xl font-bold text-dark mb-2">جاري الاتصال...</h2>
         <p class="text-gray-500 text-sm font-semibold" id="loading-text">مزامنة السحابة المباشرة ☁️</p>
+    </div>
+
+    <!-- Missing Config Warning Screen -->
+    <div id="screen-missing-config" class="screen flex flex-col justify-center items-center p-6 bg-white z-[10000]">
+        <div class="w-24 h-24 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-5xl mb-6">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2 class="text-2xl font-black text-dark mb-4 text-center">خطأ في الاتصال بقاعدة البيانات</h2>
+        <p class="text-gray-600 text-center mb-6 font-semibold leading-relaxed">
+            المنصة التي قمت برفعها على الاستضافة تحتاج إلى مفاتيح الاتصال بـ Firebase لكي تعمل بشكل عالمي وموحد بين جميع الهواتف.
+        </p>
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 w-full max-w-md text-sm text-gray-700">
+            <p class="font-bold mb-2">طريقة الحل:</p>
+            <ol class="list-decimal list-inside space-y-2">
+                <li>افتح حساب مجاني في <span class="font-mono text-brand">firebase.google.com</span></li>
+                <li>قم بإنشاء مشروع (Web App) جديد.</li>
+                <li>افتح كود هذه الصفحة (HTML).</li>
+                <li>ابحث عن السطر رقم <strong>580</strong> <code>MY_OWN_FIREBASE_CONFIG</code>.</li>
+                <li>قم بلصق إعدادات Firebase الخاصة بك هناك.</li>
+                <li>قم بضبط Rules في Firestore إلى `allow read, write: if true;` للتجريب.</li>
+            </ol>
+        </div>
     </div>
 
     <!-- WhatsApp Push Notification (Fallback/Visualizer) -->
@@ -101,7 +123,7 @@
         
         <div class="flex-1 py-4">
             <a href="#" onclick="window.switchRole()" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-exchange-alt w-6 text-xl text-brand text-center"></i> <span class="font-bold">تغيير الدور (سائق/راكب)</span></a>
-            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">الرحلات</span></a>
+            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">رحلات المدينة</span></a>
         </div>
         
         <div class="p-6 mt-auto border-t border-gray-100">
@@ -251,7 +273,7 @@
             </div>
             
             <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-dark text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg z-[1000] opacity-90 text-center whitespace-nowrap pointer-events-none flex items-center gap-2">
-                <i class="fas fa-hand-pointer"></i> حرك الخريطة لتحديد مكانك
+                <i class="fas fa-hand-pointer"></i> حرك الخريطة لتحديد موقعك
             </div>
         </div>
 
@@ -328,10 +350,11 @@
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // 🔴🔴🔴 إعدادات Firebase الخاصة بك (استبدل null ببياناتك من Firebase) 🔴🔴🔴
+        // 🔴🔴🔴 إعدادات Firebase الخاصة بك 🔴🔴🔴
+        // لكي تعمل المنصة على GitHub Pages الخاصة بك، استبدل null في الأسفل بالبيانات التي يعطيها لك Firebase
         // =========================================================================
         const MY_OWN_FIREBASE_CONFIG = null; 
-        /* مثال:
+        /* مثال عن كيفية كتابتها:
         const MY_OWN_FIREBASE_CONFIG = {
             apiKey: "AIzaSy...",
             authDomain: "your-app.firebaseapp.com",
@@ -369,7 +392,9 @@
         // --- System Boot & Strict Cloud Sync ---
         const startApp = async () => {
             if (!firebaseConfig) {
-                document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>تحذير: المنصة غير متصلة (أضف إعدادات Firebase في الكود).</span>";
+                // تظهر في حالة رفعت الموقع ولم تضع مفاتيحك
+                document.getElementById('screen-loading').style.display = 'none';
+                document.getElementById('screen-missing-config').style.display = 'flex';
                 return;
             }
 
@@ -387,6 +412,7 @@
                 if (auth.currentUser) {
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                     
+                    // الاستماع المباشر للسحابة
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
                         cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
                         if(appState.currentUser) appState.currentUser = cloudUsers.find(u => u.id === appState.currentUser.id) || appState.currentUser;
@@ -418,7 +444,7 @@
                 }
             } catch(e) {
                 console.error("Cloud Error:", e);
-                document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>خطأ في الاتصال بقاعدة البيانات. تأكد من إعدادات الصلاحيات.</span>";
+                document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>خطأ في الاتصال. راجع صلاحيات (Rules) قاعدة البيانات الخاصة بك.</span>";
             }
         };
         startApp();
@@ -561,11 +587,8 @@
             const rideId = 'R' + Date.now();
             appState.activeRideId = rideId;
             
-            // Pickup details from map center
             let pickupTxt = "موقع الخريطة المحدد";
-            if(appState.currentPickupCoords) {
-                pickupTxt = `(${appState.currentPickupCoords.lat.toFixed(4)}, ${appState.currentPickupCoords.lng.toFixed(4)})`;
-            }
+            if(appState.currentPickupCoords) pickupTxt = `(${appState.currentPickupCoords.lat.toFixed(4)}, ${appState.currentPickupCoords.lng.toFixed(4)})`;
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
@@ -684,7 +707,6 @@
                 document.getElementById('active-driver-car').innerText = ride.driverCar;
                 document.getElementById('active-driver-plate').innerText = ride.driverMat;
                 
-                // Show driver location (mock) and passenger location on map
                 if(appState.rideMap && ride.pickupCoords) {
                     L.marker([ride.pickupCoords.lat, ride.pickupCoords.lng], { icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:#00A3FF; width:18px; height:18px; border-radius:50%; border:3px solid white;"></div>`, iconSize: [18, 18] }) }).addTo(appState.rideMap);
                     appState.rideMap.flyTo([ride.pickupCoords.lat, ride.pickupCoords.lng], 15);
@@ -698,7 +720,6 @@
                 document.getElementById('ride-dest-info').classList.remove('hidden');
                 document.getElementById('active-ride-dest').innerText = ride.dest;
 
-                // Show passenger pickup pin on map
                 if(appState.rideMap && ride.pickupCoords) {
                     appState.rideMap.flyTo([ride.pickupCoords.lat, ride.pickupCoords.lng], 15);
                     L.marker([ride.pickupCoords.lat, ride.pickupCoords.lng], { icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:#00A3FF; width:24px; height:24px; border-radius:50%; border:3px solid white; display:flex; justify-content:center; align-items:center; color:white; font-size:10px;"><i class="fas fa-user"></i></div>`, iconSize: [24, 24] }) }).addTo(appState.rideMap);
