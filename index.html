@@ -26,17 +26,21 @@
     <style>
         body { font-family: 'Cairo', sans-serif; background-color: #F4F7F6; overflow-x: hidden; touch-action: manipulation; color: #1e293b; margin: 0; padding: 0; }
         
+        /* Screens */
         .screen { display: none; height: 100vh; width: 100%; position: fixed; top: 0; left: 0; background: #F4F7F6; z-index: 1; opacity: 0; transition: opacity 0.3s ease-in-out; overflow-y: auto; overflow-x: hidden; padding-bottom: 2rem; }
         .screen.active { display: block; z-index: 10; opacity: 1; }
         
+        /* Maps */
         .map-container { height: 55vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; }
         .admin-map-container { height: 350px; width: 100%; border-radius: 1rem; z-index: 1; position: relative; overflow: hidden; border: 2px solid #E2E8F0; }
         .ride-map-container { height: 60vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; }
         
-        .bottom-sheet { position: fixed; bottom: 0; width: 100%; border-radius: 28px 28px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.08); z-index: 20; background: #ffffff; display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; padding-bottom: env(safe-area-bottom); }
+        /* Bottom Sheet */
+        .bottom-sheet { position: fixed; bottom: 0; width: 100%; border-radius: 28px 28px 0 0; box-shadow: 0 -15px 40px rgba(0,0,0,0.1); z-index: 20; background: #ffffff; display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; padding-bottom: env(safe-area-bottom); }
 
         .leaflet-control-attribution { display: none !important; }
         
+        /* Inputs & Buttons */
         .id-input { width: 100%; background: #F8FAFC; color: #1e293b; border: 1px solid #E2E8F0; padding: 1.2rem 1rem; border-radius: 1rem; outline: none; transition: border-color 0.2s; font-weight: 600;}
         .id-input:focus { border-color: #00A3FF; background: #ffffff; box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1); }
         
@@ -44,24 +48,26 @@
         .btn-primary:active { transform: scale(0.98); background-color: #007BFF; }
         .btn-primary:disabled { background-color: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
         
+        /* Sidebar */
         #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; backdrop-filter: blur(2px); opacity: 0; transition: opacity 0.3s; }
         #sidebar { position: fixed; top: 0; bottom: 0; right: -100%; width: 80%; max-width: 320px; background: #ffffff; z-index: 50; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -5px 0 25px rgba(0,0,0,0.1); overflow-y: auto;}
 
+        /* Toasts & Notifications */
         #push-notification { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 9999; padding: 16px; transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 12px; border: 1px solid rgba(0,0,0,0.05); }
         #push-notification.show { top: 20px; }
-
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; pointer-events: none; display: flex; flex-direction: column; gap: 10px; align-items: center;}
         
         @keyframes customPing { 75%, 100% { transform: scale(2); opacity: 0; } }
         .animate-custom-ping { animation: customPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
 
+        /* Loading Screen */
         #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.5s;}
         
-        /* Central Map Pin for passenger location selection */
+        /* Central Map Pin for Passenger Precision */
         .map-center-pin-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
-        .map-center-pin { color: #00A3FF; font-size: 3rem; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); transition: transform 0.2s ease; }
-        .map-center-pin.moving { transform: translateY(-15px); color: #007BFF; }
-        .map-center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background-color: rgba(0,0,0,0.15); border-radius: 50%; z-index: 999; pointer-events: none; }
+        .map-center-pin { color: #1e293b; font-size: 2.5rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
+        .map-center-pin.moving { transform: translateY(-20px); color: #00A3FF; }
+        .map-center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; background-color: rgba(0,0,0,0.3); border-radius: 50%; z-index: 999; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
     </style>
 </head>
 <body class="antialiased">
@@ -81,19 +87,19 @@
         <div class="w-24 h-24 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-5xl mb-6">
             <i class="fas fa-exclamation-triangle"></i>
         </div>
-        <h2 class="text-2xl font-black text-dark mb-4 text-center">خطأ في الاتصال بقاعدة البيانات</h2>
+        <h2 class="text-2xl font-black text-dark mb-4 text-center">انقطاع الاتصال بقاعدة البيانات</h2>
         <p class="text-gray-600 text-center mb-6 font-semibold leading-relaxed">
-            المنصة التي قمت برفعها على الاستضافة تحتاج إلى مفاتيح الاتصال بـ Firebase لكي تعمل بشكل عالمي وموحد بين جميع الهواتف.
+            المنصة التي قمت برفعها على الاستضافة (GitHub) تحتاج إلى مفاتيح الاتصال بـ Firebase لكي تعمل بشكل عالمي وموحد.
         </p>
-        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 w-full max-w-md text-sm text-gray-700">
-            <p class="font-bold mb-2">طريقة الحل:</p>
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 w-full max-w-md text-sm text-gray-700 text-right">
+            <p class="font-bold mb-2 text-brand">طريقة الحل السريعة:</p>
             <ol class="list-decimal list-inside space-y-2">
-                <li>افتح حساب مجاني في <span class="font-mono text-brand">firebase.google.com</span></li>
-                <li>قم بإنشاء مشروع (Web App) جديد.</li>
-                <li>افتح كود هذه الصفحة (HTML).</li>
-                <li>ابحث عن السطر رقم <strong>580</strong> <code>MY_OWN_FIREBASE_CONFIG</code>.</li>
-                <li>قم بلصق إعدادات Firebase الخاصة بك هناك.</li>
-                <li>قم بضبط Rules في Firestore إلى `allow read, write: if true;` للتجريب.</li>
+                <li>افتح حساب مجاني في <span class="font-mono font-bold text-dark">firebase.google.com</span></li>
+                <li>قم بإنشاء مشروع (Web App) جديد، ثم فعل (Firestore Database) و (Authentication).</li>
+                <li>افتح كود هذه الصفحة (HTML) في محرر الأكواد.</li>
+                <li>ابحث عن السطر الخاص بـ <code>MY_OWN_FIREBASE_CONFIG</code> في أسفل الكود.</li>
+                <li>قم بلصق إعدادات Firebase الخاصة بك مكان الكلمات <span class="text-red-500 font-bold">"YOUR_API_KEY"</span> وهكذا.</li>
+                <li>في Firebase Firestore، اضبط الـ Rules إلى `allow read, write: if true;`.</li>
             </ol>
         </div>
     </div>
@@ -123,7 +129,7 @@
         
         <div class="flex-1 py-4">
             <a href="#" onclick="window.switchRole()" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-exchange-alt w-6 text-xl text-brand text-center"></i> <span class="font-bold">تغيير الدور (سائق/راكب)</span></a>
-            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">رحلات المدينة</span></a>
+            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">الرحلات الحالية</span></a>
         </div>
         
         <div class="p-6 mt-auto border-t border-gray-100">
@@ -239,7 +245,7 @@
                 <span class="font-mono text-xl font-black text-dark">00799999000467087604</span>
             </div>
             <button onclick="window.paySubscription()" class="btn-primary py-4 text-xl shadow-md mb-3">لقد قمت بالدفع</button>
-            <button onclick="window.showScreen('screen-role')" class="text-gray-500 font-bold bg-transparent border-none cursor-pointer">العودة</button>
+            <button onclick="window.showScreen('screen-role')" class="text-gray-500 font-bold bg-transparent border-none cursor-pointer">العودة للرئيسية</button>
         </div>
     </div>
 
@@ -272,17 +278,17 @@
                 <button onclick="window.openSidebar()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-dark shadow-lg pointer-events-auto border border-gray-100 border-none cursor-pointer"><i class="fas fa-bars text-xl"></i></button>
             </div>
             
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-dark text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg z-[1000] opacity-90 text-center whitespace-nowrap pointer-events-none flex items-center gap-2">
-                <i class="fas fa-hand-pointer"></i> حرك الخريطة لتحديد موقعك
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white border-2 border-brand text-brand px-6 py-3 rounded-full text-sm font-black shadow-xl z-[1000] opacity-95 text-center whitespace-nowrap pointer-events-none flex items-center gap-3">
+                <i class="fas fa-hand-pointer text-lg"></i> حرك الخريطة لتحديد موقعك
             </div>
         </div>
 
         <div class="bottom-sheet p-6">
             <h3 class="font-black text-2xl mb-4 text-dark">إلى أين تذهب؟</h3>
             <div class="bg-background rounded-2xl p-4 mb-4 border border-gray-200">
-                <div class="flex items-center gap-4"><div class="w-3 h-3 bg-brand rounded-full"></div><input type="text" id="pass-pickup-display" value="موقعي (حسب مؤشر الخريطة)" class="w-full bg-transparent text-gray-500 font-bold text-sm outline-none border-none" readonly></div>
+                <div class="flex items-center gap-4"><div class="w-4 h-4 bg-dark rounded-full"></div><input type="text" id="pass-pickup-display" value="موقعي (حسب مؤشر الخريطة)" class="w-full bg-transparent text-gray-500 font-bold text-sm outline-none border-none" readonly></div>
                 <div class="w-full h-px bg-gray-200 my-3"></div>
-                <div class="flex items-center gap-4"><div class="w-3 h-3 bg-red-500 rounded-full"></div><input type="text" id="pass-dest" placeholder="أدخل وجهتك هنا..." class="w-full bg-transparent text-dark font-black text-xl outline-none border-none" oninput="window.calculateEstimatedPrice()"></div>
+                <div class="flex items-center gap-4"><div class="w-4 h-4 bg-brand rounded-full"></div><input type="text" id="pass-dest" placeholder="أدخل وجهتك هنا..." class="w-full bg-transparent text-dark font-black text-xl outline-none border-none" oninput="window.calculateEstimatedPrice()"></div>
             </div>
             
             <div id="price-calc-container" class="hidden flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl mb-4 text-brand font-bold text-sm">المسافة التقريبية: <span id="est-dist">--</span> كم (25 د.ج/كم)</div>
@@ -350,28 +356,39 @@
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // 🔴🔴🔴 إعدادات Firebase الخاصة بك 🔴🔴🔴
-        // لكي تعمل المنصة على GitHub Pages الخاصة بك، استبدل null في الأسفل بالبيانات التي يعطيها لك Firebase
+        // 🔴🔴🔴 إعدادات Firebase الخاصة بك (للربط مع استضافة GitHub) 🔴🔴🔴
+        // قم بتبديل الكلمات المكتوبة بالإنجليزية (YOUR_API_KEY وما إلى ذلك)
+        // بالأكواد التي تجدها في مشروعك على موقع Firebase -> Project Settings
         // =========================================================================
-        const MY_OWN_FIREBASE_CONFIG = null; 
-        /* مثال عن كيفية كتابتها:
         const MY_OWN_FIREBASE_CONFIG = {
-            apiKey: "AIzaSy...",
-            authDomain: "your-app.firebaseapp.com",
-            projectId: "your-app",
-            storageBucket: "your-app.appspot.com",
-            messagingSenderId: "123456",
-            appId: "1:123456:web:abcd"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-        */
+
+        // التحقق مما إذا كان المستخدم قد قام بتغيير الإعدادات الافتراضية
+        const isConfigMissing = MY_OWN_FIREBASE_CONFIG.apiKey === "YOUR_API_KEY";
 
         let firebaseConfig = MY_OWN_FIREBASE_CONFIG;
-        if (!firebaseConfig) {
-            try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+        
+        // إذا كنا داخل بيئة التطوير (Canvas) ولم يتم وضع إعدادات، نستخدم السحابة المؤقتة
+        if (isConfigMissing) {
+            try { 
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config); 
+                } else {
+                    firebaseConfig = null; // سيتم عرض شاشة الخطأ
+                }
+            } catch(e) {
+                firebaseConfig = null;
+            }
         }
 
         // Core State
-        const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null, map: null, rideMap: null, currentPickupCoords: null };
+        const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null, map: null, rideMap: null, adminMap: null, currentPickupCoords: null };
         let cloudUsers = [];
         let cloudRides = [];
         let cloudApi = { instanceId: '', token: '' };
@@ -391,8 +408,8 @@
 
         // --- System Boot & Strict Cloud Sync ---
         const startApp = async () => {
-            if (!firebaseConfig) {
-                // تظهر في حالة رفعت الموقع ولم تضع مفاتيحك
+            // التحقق من وجود الإعدادات لمنع الشاشة البيضاء عند استضافة الكود على GitHub
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
                 document.getElementById('screen-loading').style.display = 'none';
                 document.getElementById('screen-missing-config').style.display = 'flex';
                 return;
@@ -409,39 +426,43 @@
                     await signInAnonymously(auth);
                 }
                 
-                if (auth.currentUser) {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-                    
-                    // الاستماع المباشر للسحابة
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
-                        cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
-                        if(appState.currentUser) appState.currentUser = cloudUsers.find(u => u.id === appState.currentUser.id) || appState.currentUser;
-                    });
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
+                        
+                        // الاستماع المباشر للسحابة (الركاب والسائقين)
+                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
+                            cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
+                            if(appState.currentUser) appState.currentUser = cloudUsers.find(u => u.id === appState.currentUser.id) || appState.currentUser;
+                        });
 
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'rides'), (snap) => {
-                        cloudRides = []; snap.forEach(d => cloudRides.push({ id: d.id, ...d.data() }));
-                        handleRidesLiveUpdate();
-                    });
+                        // الاستماع المباشر للرحلات
+                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'rides'), (snap) => {
+                            cloudRides = []; snap.forEach(d => cloudRides.push({ id: d.id, ...d.data() }));
+                            handleRidesLiveUpdate();
+                        });
 
-                    onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
-                        if(docSnap.exists()) cloudApi = docSnap.data(); 
-                    });
+                        // الاستماع لإعدادات الـ API
+                        onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
+                            if(docSnap.exists()) cloudApi = docSnap.data(); 
+                        });
 
-                    document.getElementById('screen-loading').style.opacity = '0';
-                    setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 500);
+                        document.getElementById('screen-loading').style.opacity = '0';
+                        setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 500);
 
-                    const savedPhone = localStorage.getItem('id_session_phone');
-                    if (savedPhone) {
-                        setTimeout(() => {
-                            const u = cloudUsers.find(x => x.id === savedPhone);
-                            if(u) {
-                                appState.currentUser = u;
-                                document.getElementById('welcome-name').innerText = u.fname || 'مستخدم';
-                                window.showScreen('screen-role');
-                            } else { window.showScreen('screen-welcome'); }
-                        }, 1000);
-                    } else { window.showScreen('screen-welcome'); }
-                }
+                        const savedPhone = localStorage.getItem('id_session_phone');
+                        if (savedPhone) {
+                            setTimeout(() => {
+                                const u = cloudUsers.find(x => x.id === savedPhone);
+                                if(u) {
+                                    appState.currentUser = u;
+                                    document.getElementById('welcome-name').innerText = u.fname || 'مستخدم';
+                                    window.showScreen('screen-role');
+                                } else { window.showScreen('screen-welcome'); }
+                            }, 1000);
+                        } else { window.showScreen('screen-welcome'); }
+                    }
+                });
             } catch(e) {
                 console.error("Cloud Error:", e);
                 document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>خطأ في الاتصال. راجع صلاحيات (Rules) قاعدة البيانات الخاصة بك.</span>";
@@ -740,7 +761,7 @@
         };
         window.callPartner = () => window.location.href = `tel:${document.getElementById('active-partner-phone').innerText}`;
 
-        // --- Maps Core ---
+        // --- Maps Core (With Pin Drag) ---
         const initMap = (elementId, isSelectable = false) => {
             if(appState[elementId]) return; 
             try {
@@ -757,11 +778,13 @@
 
                 if(isSelectable) {
                     const pin = document.getElementById('pickup-pin');
+                    const display = document.getElementById('pass-pickup-display');
                     appState[elementId].on('movestart', () => { if(pin) pin.classList.add('moving'); });
                     appState[elementId].on('moveend', () => { 
                         if(pin) pin.classList.remove('moving');
                         const center = appState[elementId].getCenter();
                         appState.currentPickupCoords = { lat: center.lat, lng: center.lng };
+                        if(display) display.value = `إحداثيات: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
                     });
                 }
             } catch(e){}
