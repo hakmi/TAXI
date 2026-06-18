@@ -2,881 +2,178 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iD Algérie - تطبيق النقل الذكي</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { brand: '#00A3FF', brandDark: '#007BFF', brandLight: '#E5F4FF', dark: '#1e293b', surface: '#ffffff', background: '#F4F7F6' },
-                    fontFamily: { sans: ['Cairo', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة عبد الكريم السحابية</title>
+    <!-- استدعاء خطوط وتصميم أنيق للمنصة -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #F4F7F6; overflow-x: hidden; touch-action: manipulation; color: #1e293b; margin: 0; padding: 0; }
-        
-        /* Screens */
-        .screen { display: none; height: 100vh; width: 100%; position: fixed; top: 0; left: 0; background: #F4F7F6; z-index: 1; opacity: 0; transition: opacity 0.3s ease-in-out; overflow-y: auto; overflow-x: hidden; padding-bottom: 2rem; }
-        .screen.active { display: block; z-index: 10; opacity: 1; }
-        
-        /* Maps */
-        .map-container { height: 55vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; }
-        .admin-map-container { height: 350px; width: 100%; border-radius: 1rem; z-index: 1; position: relative; overflow: hidden; border: 2px solid #E2E8F0; }
-        .ride-map-container { height: 60vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; }
-        
-        /* Bottom Sheet */
-        .bottom-sheet { position: fixed; bottom: 0; width: 100%; border-radius: 28px 28px 0 0; box-shadow: 0 -15px 40px rgba(0,0,0,0.1); z-index: 20; background: #ffffff; display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; padding-bottom: env(safe-area-bottom); }
-
-        .leaflet-control-attribution { display: none !important; }
-        
-        /* Inputs & Buttons */
-        .id-input { width: 100%; background: #F8FAFC; color: #1e293b; border: 1px solid #E2E8F0; padding: 1.2rem 1rem; border-radius: 1rem; outline: none; transition: border-color 0.2s; font-weight: 600;}
-        .id-input:focus { border-color: #00A3FF; background: #ffffff; box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1); }
-        
-        .btn-primary { background-color: #00A3FF; color: white; font-weight: bold; border-radius: 1rem; padding: 1rem; text-align: center; width: 100%; box-shadow: 0 4px 15px rgba(0, 163, 255, 0.3); transition: transform 0.1s, background-color 0.2s; cursor: pointer; border: none; }
-        .btn-primary:active { transform: scale(0.98); background-color: #007BFF; }
-        .btn-primary:disabled { background-color: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
-        
-        /* Sidebar */
-        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; backdrop-filter: blur(2px); opacity: 0; transition: opacity 0.3s; }
-        #sidebar { position: fixed; top: 0; bottom: 0; right: -100%; width: 80%; max-width: 320px; background: #ffffff; z-index: 50; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -5px 0 25px rgba(0,0,0,0.1); overflow-y: auto;}
-
-        /* Toasts & Notifications */
-        #push-notification { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 9999; padding: 16px; transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 12px; border: 1px solid rgba(0,0,0,0.05); }
-        #push-notification.show { top: 20px; }
-        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; pointer-events: none; display: flex; flex-direction: column; gap: 10px; align-items: center;}
-        
-        @keyframes customPing { 75%, 100% { transform: scale(2); opacity: 0; } }
-        .animate-custom-ping { animation: customPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
-
-        /* Loading Screen */
-        #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.4s;}
-        
-        /* Central Map Pin for Passenger Precision */
-        .map-center-pin-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
-        .map-center-pin { color: #1e293b; font-size: 2.8rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
-        .map-center-pin.moving { transform: translateY(-20px); color: #00A3FF; }
-        .map-center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; background-color: rgba(0,0,0,0.3); border-radius: 50%; z-index: 999; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
+        @import url('[https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap](https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap)');
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
     </style>
 </head>
-<body class="antialiased">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between">
 
-    <!-- Loading Screen (Optimized for instant load) -->
-    <div id="screen-loading">
-        <div class="relative w-24 h-24 flex justify-center items-center mb-6">
-            <div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div>
-            <span class="text-4xl font-black text-brand">iD</span>
+    <!-- شريط الرأس (Header) -->
+    <header class="bg-slate-800 p-4 shadow-lg border-b border-slate-700">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-orange-500">منصة عبد الكريم السحابية ☁️</h1>
+            <span class="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded-full border border-emerald-500/30">مشروع متصل بالسحابة</span>
         </div>
-        <h2 class="text-xl font-bold text-dark mb-2">جاري التجهيز...</h2>
-        <p class="text-gray-500 text-sm font-semibold" id="loading-text">سرعة وأداء فوري ⚡</p>
-    </div>
+    </header>
 
-    <!-- WhatsApp Push Notification (Fallback/Visualizer) -->
-    <div id="push-notification">
-        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl shadow-md shrink-0"><i class="fab fa-whatsapp"></i></div>
-        <div class="flex-1 text-left" dir="ltr">
-            <h4 class="font-bold text-gray-800 text-sm">WhatsApp</h4>
-            <p class="text-sm text-gray-600 mt-1">كود iD الخاص بك هو: <span id="push-code" class="font-black text-green-600 text-lg"></span></p>
-        </div>
-    </div>
-
-    <div id="toast-container"></div>
-
-    <!-- Sidebar -->
-    <div id="sidebar-overlay" onclick="window.closeSidebar()"></div>
-    <div id="sidebar" class="flex flex-col">
-        <div class="p-6 flex items-center border-b border-gray-100 bg-brandLight">
-            <div class="w-14 h-14 rounded-full bg-brand text-white flex items-center justify-center font-bold text-2xl ml-4 shadow-md" id="sidebar-avatar">م</div>
-            <div class="flex-1">
-                <h3 class="font-bold text-lg text-dark" id="sidebar-name">مستخدم</h3>
-                <div class="text-brand font-semibold text-sm flex items-center mt-1"><i class="fas fa-star ml-1 text-yellow-400"></i> <span id="sidebar-role">راكب</span></div>
-            </div>
-            <button onclick="window.closeSidebar()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm border-none cursor-pointer"><i class="fas fa-times"></i></button>
-        </div>
-        
-        <div class="flex-1 py-4">
-            <a href="#" onclick="window.switchRole()" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-exchange-alt w-6 text-xl text-brand text-center"></i> <span class="font-bold">تغيير الدور (سائق/راكب)</span></a>
-            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">الرحلات الحالية</span></a>
-        </div>
-        
-        <div class="p-6 mt-auto border-t border-gray-100">
-            <button onclick="window.logoutApp()" class="w-full bg-red-50 text-red-600 font-bold py-4 rounded-xl text-lg shadow-sm transition hover:bg-red-100 flex justify-center items-center gap-2 border-none cursor-pointer">
-                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
-            </button>
-        </div>
-    </div>
-
-    <!-- 1. Welcome Screen -->
-    <div id="screen-welcome" class="screen flex flex-col relative h-screen bg-white">
-        <button onclick="window.showScreen('screen-admin-login')" class="absolute top-6 left-6 text-gray-400 hover:text-brand p-2 z-50 transition border-none bg-transparent cursor-pointer"><i class="fas fa-shield-alt text-xl"></i></button>
-        
-        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center mt-8">
-            <div class="w-32 h-32 rounded-[2rem] flex items-center justify-center mb-8 relative">
-                <div class="absolute inset-0 bg-brand opacity-10 rounded-[2rem] transform rotate-6"></div>
-                <div class="absolute inset-0 bg-brand opacity-20 rounded-[2rem] transform -rotate-3"></div>
-                <div class="relative bg-white border-2 border-brand w-full h-full rounded-[2rem] flex items-center justify-center shadow-xl">
-                    <span class="text-5xl font-black text-brand tracking-tighter" dir="ltr">iD</span>
-                </div>
-            </div>
-            <h1 class="text-4xl font-black mb-4 text-dark leading-tight tracking-wider" dir="ltr">iD Algérie</h1>
-            <p class="text-gray-500 font-semibold text-lg">أنت من يقترح السعر.. نقل ذكي 🚕</p>
-        </div>
-        
-        <div class="p-6 pb-10 space-y-3 z-10 relative bg-white w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-            <button onclick="window.showScreen('screen-phone')" class="btn-primary flex justify-center items-center gap-3 text-lg py-4 shadow-lg">
-                <i class="fas fa-phone-alt"></i> الدخول وتأكيد الواتساب
-            </button>
-            <p class="text-xs text-gray-400 text-center mt-4 px-4 leading-relaxed font-semibold">بالمتابعة، أنت توافق على شروط الاستخدام الخاصة بنا.</p>
-        </div>
-    </div>
-
-    <!-- 2. Phone Screen -->
-    <div id="screen-phone" class="screen flex flex-col bg-white">
-        <div class="p-6 pt-12 flex flex-col h-full overflow-y-auto">
-            <div class="flex items-center mb-8 gap-4">
-                <button onclick="window.showScreen('screen-welcome')" class="text-dark bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-200 border-none cursor-pointer"><i class="fas fa-arrow-right"></i></button>
-                <h2 class="text-2xl font-black text-dark">معلوماتك الشخصية</h2>
-            </div>
-            <div class="space-y-4 mb-6">
-                <div><label class="block text-gray-700 text-sm font-bold mb-2">الاسم <span class="text-red-500">*</span></label><input type="text" id="ob-fname" placeholder="الاسم الأول" class="id-input text-lg"></div>
-                <div><label class="block text-gray-700 text-sm font-bold mb-2">اللقب</label><input type="text" id="ob-lname" placeholder="اللقب" class="id-input text-lg"></div>
-                <div class="pt-2">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">رقم الهاتف <span class="text-red-500">*</span></label>
-                    <div class="bg-gray-50 rounded-2xl p-3 flex items-center border border-gray-200 focus-within:border-brand focus-within:bg-white transition-all shadow-sm" dir="ltr">
-                        <div class="flex items-center border-r-2 border-gray-200 pr-3 mr-3 text-lg"><span class="mr-2 text-xl">🇩🇿</span> <span class="font-bold text-dark">+213</span></div>
-                        <input type="tel" id="ob-phone" placeholder="55 00 00 00 0" class="w-full bg-transparent outline-none text-xl font-bold text-dark tracking-wider" maxlength="10">
+    <!-- محتوى المنصة الرئيسي -->
+    <main class="container mx-auto p-6 flex-grow max-w-4xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- قسم إدخال وإرسال البيانات -->
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+                <h2 class="text-lg font-bold mb-4 text-slate-300">إرسال بيانات جديدة للسحابة</h2>
+                <form id="dataForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">اسم المرسل:</label>
+                        <input type="text" id="senderName" required placeholder="أدخل اسمك هنا..." class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-orange-500 text-white transition">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">الرسالة أو الملاحظة:</label>
+                        <textarea id="messageText" required rows="3" placeholder="اكتب رسالتك السحابية هنا..." class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-orange-500 text-white transition"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-orange-600/20 transition duration-150">
+                        إرسال إلى قاعدة البيانات
+                    </button>
+                </form>
+                <p id="statusMessage" class="mt-3 text-sm text-center hidden"></p>
+            </div>
+
+            <!-- قسم استعراض البيانات من السحابة -->
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col h-[400px]">
+                <h2 class="text-lg font-bold mb-4 text-slate-300">البيانات الحية من السحابة</h2>
+                <div id="messagesContainer" class="flex-grow overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
+                    <div class="text-slate-500 text-center py-8">جاري التحميل والاتصال بالسحابة...</div>
                 </div>
             </div>
-            <button onclick="window.sendWhatsAppCode()" id="btn-send-wa" class="btn-primary mt-auto mb-6 text-xl py-4 flex justify-center items-center gap-2 shadow-lg">استلام الرمز <i class="fab fa-whatsapp text-xl"></i></button>
-        </div>
-    </div>
 
-    <!-- 3. OTP Screen -->
-    <div id="screen-otp" class="screen flex flex-col bg-white">
-        <div class="p-6 pt-12 flex flex-col h-full">
-            <div class="flex items-center mb-8 gap-4">
-                <button onclick="window.showScreen('screen-phone')" class="text-dark bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-200 border-none cursor-pointer"><i class="fas fa-arrow-right"></i></button>
-                <h2 class="text-2xl font-black text-dark">أدخل الرمز</h2>
-            </div>
-            <p class="text-gray-600 mb-8 font-semibold text-lg">تم إرسال الرمز عبر واتساب إلى <br><span id="otp-display-phone" class="font-black text-brand text-xl" dir="ltr"></span></p>
-            <div class="flex justify-center gap-4 mb-8" dir="ltr">
-                <input type="text" id="otp-1" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1" onkeyup="window.moveNext(this, 'otp-2')">
-                <input type="text" id="otp-2" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1" onkeyup="window.moveNext(this, 'otp-3')">
-                <input type="text" id="otp-3" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1" onkeyup="window.moveNext(this, 'otp-4')">
-                <input type="text" id="otp-4" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1">
-            </div>
-            <button onclick="window.verifyOTP()" class="btn-primary mt-auto mb-6 text-xl py-4 shadow-lg">تأكيد الدخول</button>
         </div>
-    </div>
+    </main>
 
-    <!-- 4. Role Selection Screen -->
-    <div id="screen-role" class="screen flex flex-col bg-background">
-        <div class="p-6 pt-16 flex flex-col h-full items-center text-center">
-            <h2 class="text-3xl font-black text-dark mb-3">مرحباً <span id="welcome-name" class="text-brand"></span>!</h2>
-            <p class="text-gray-500 font-semibold mb-12">كيف ترغب في استخدام التطبيق اليوم؟</p>
-            <div class="w-full space-y-6 mt-auto mb-10">
-                <div onclick="window.selectRole('passenger')" class="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-brand cursor-pointer transition-all transform hover:-translate-y-1 relative overflow-hidden flex items-center">
-                    <div class="absolute -left-6 -top-6 w-32 h-32 bg-brandLight rounded-full z-0"></div>
-                    <div class="w-16 h-16 bg-brand text-white rounded-2xl flex items-center justify-center text-3xl shadow-md z-10 ml-6"><i class="fas fa-user"></i></div>
-                    <div class="z-10 text-right w-full"><h3 class="text-2xl font-black text-dark">راكب</h3><p class="text-gray-500 font-semibold text-sm mt-1">حدد موقعك على الخريطة واقترح السعر</p></div>
-                </div>
-                <div onclick="window.selectRole('driver')" class="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-dark cursor-pointer transition-all transform hover:-translate-y-1 relative overflow-hidden flex items-center">
-                    <div class="absolute -left-6 -top-6 w-32 h-32 bg-gray-100 rounded-full z-0"></div>
-                    <div class="w-16 h-16 bg-dark text-white rounded-2xl flex items-center justify-center text-3xl shadow-md z-10 ml-6"><i class="fas fa-car"></i></div>
-                    <div class="z-10 text-right w-full"><h3 class="text-2xl font-black text-dark">سائق</h3><p class="text-gray-500 font-semibold text-sm mt-1">تلقى الطلبات واكسب المال</p></div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- تذييل الصفحة -->
+    <footer class="bg-slate-950 p-4 text-center text-sm text-slate-500 border-t border-slate-800">
+        جميع الحقوق محفوظة لمنصة عبد الكريم البرمجية &copy; 2026
+    </footer>
 
-    <!-- Driver Reg & Payment & Dash -->
-    <div id="screen-driver-reg" class="screen flex flex-col bg-white">
-        <div class="p-6 pt-12 flex flex-col h-full overflow-y-auto">
-            <div class="flex items-center mb-8 gap-4"><button onclick="window.showScreen('screen-role')" class="text-dark bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-200 border-none cursor-pointer"><i class="fas fa-arrow-right"></i></button><h2 class="text-2xl font-black text-dark">معلومات مركبتك</h2></div>
-            <div class="space-y-4 mb-6">
-                <div><label class="block text-gray-700 text-sm font-bold mb-2">نوع السيارة</label><input type="text" id="reg-car" placeholder="مثال: Renault Symbol" class="id-input text-lg"></div>
-                <div><label class="block text-gray-700 text-sm font-bold mb-2">اللوحة (Matricule)</label><input type="text" id="reg-mat" placeholder="00000 000 00" class="id-input font-mono font-black text-2xl tracking-widest text-center" dir="ltr" style="border: 2px solid #cbd5e1;"></div>
-            </div>
-            <button onclick="window.submitDriverReg()" class="btn-primary mt-auto mb-6 text-xl py-4 shadow-lg">التسجيل والتفعيل</button>
-        </div>
-    </div>
-
-    <div id="screen-driver-payment" class="screen flex flex-col items-center justify-center p-6 bg-background">
-        <div class="bg-white p-8 rounded-[2rem] w-full max-w-md text-center shadow-xl border border-gray-100 relative overflow-hidden">
-            <div class="w-20 h-20 bg-brandLight rounded-full flex items-center justify-center text-brand text-4xl mx-auto mb-6"><i class="fas fa-wallet"></i></div>
-            <h2 class="text-2xl font-black text-dark mb-3">تفعيل الحساب مطلوب</h2>
-            <p class="text-gray-600 mb-6 font-semibold text-sm">لدفع الاشتراك <strong class="text-dark">2000 د.ج</strong> عبر بريدي موب:</p>
-            <div class="bg-gray-50 w-full p-4 rounded-2xl mb-8 text-right border border-gray-200 flex items-center justify-between" dir="ltr">
-                <button onclick="navigator.clipboard.writeText('00799999000467087604'); window.showToast('تم النسخ!')" class="text-brand bg-brandLight w-12 h-12 rounded-xl flex items-center justify-center border-none cursor-pointer"><i class="fas fa-copy"></i></button>
-                <span class="font-mono text-xl font-black text-dark">00799999000467087604</span>
-            </div>
-            <button onclick="window.paySubscription()" class="btn-primary py-4 text-xl shadow-md mb-3">لقد قمت بالدفع</button>
-            <button onclick="window.showScreen('screen-role')" class="text-gray-500 font-bold bg-transparent border-none cursor-pointer">العودة للرئيسية</button>
-        </div>
-    </div>
-
-    <div id="screen-driver-dash" class="screen flex flex-col bg-background">
-        <div class="p-4 flex items-center justify-between bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
-            <div class="flex items-center gap-4"><button onclick="window.openSidebar()" class="text-dark w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shadow-sm border-none cursor-pointer"><i class="fas fa-bars"></i></button><div class="bg-brandLight text-brand px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2"><div class="w-2 h-2 bg-brand rounded-full animate-pulse"></div> <span id="driver-status-text">متصل وجاهز</span></div></div>
-        </div>
-        <div class="p-4 flex-1 overflow-y-auto flex flex-col relative">
-            <div id="driver-empty-state" class="flex flex-col items-center justify-center h-full absolute inset-0">
-                <div class="relative w-32 h-32 flex justify-center items-center mb-8"><div class="absolute inset-0 border-4 border-brand opacity-20 rounded-full animate-custom-ping"></div><div class="w-20 h-20 bg-brandLight text-brand rounded-full flex items-center justify-center text-3xl shadow-inner"><i class="fas fa-satellite-dish"></i></div></div>
-                <p class="font-black text-dark text-2xl mb-2">أنت الآن متصل</p>
-                <p class="text-gray-500 text-center font-bold">ننتظر الطلبات الحية من الركاب...</p>
-            </div>
-            <div id="driver-rides-list" class="w-full relative z-10 space-y-4"></div>
-        </div>
-    </div>
-
-    <!-- Passenger Screens -->
-    <div id="screen-passenger-home" class="screen relative h-screen overflow-hidden">
-        <div class="relative w-full h-[55vh]">
-            <div id="map" class="w-full h-full"></div>
-            
-            <!-- Center Pin for exact location selection -->
-            <div class="map-center-dot"></div>
-            <div class="map-center-pin-container" id="pickup-pin-container">
-                <i class="fas fa-map-marker-alt map-center-pin" id="pickup-pin"></i>
-            </div>
-            
-            <div class="absolute top-8 left-0 w-full px-6 z-[1000] flex justify-between items-center pointer-events-none">
-                <button onclick="window.openSidebar()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-dark shadow-lg pointer-events-auto border border-gray-100 border-none cursor-pointer"><i class="fas fa-bars text-xl"></i></button>
-            </div>
-            
-            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white border-2 border-brand text-brand px-6 py-3 rounded-full text-sm font-black shadow-xl z-[1000] opacity-95 text-center whitespace-nowrap pointer-events-none flex items-center gap-3">
-                <i class="fas fa-hand-pointer text-lg"></i> حرك الخريطة لتحديد موقعك
-            </div>
-        </div>
-
-        <div class="bottom-sheet p-6">
-            <h3 class="font-black text-2xl mb-4 text-dark">إلى أين تذهب؟</h3>
-            <div class="bg-background rounded-2xl p-4 mb-4 border border-gray-200">
-                <div class="flex items-center gap-4"><div class="w-4 h-4 bg-dark rounded-full"></div><input type="text" id="pass-pickup-display" value="موقعي (حسب مؤشر الخريطة)" class="w-full bg-transparent text-gray-500 font-bold text-sm outline-none border-none" readonly></div>
-                <div class="w-full h-px bg-gray-200 my-3"></div>
-                <div class="flex items-center gap-4"><div class="w-4 h-4 bg-brand rounded-full"></div><input type="text" id="pass-dest" placeholder="أدخل وجهتك هنا..." class="w-full bg-transparent text-dark font-black text-xl outline-none border-none" oninput="window.calculateEstimatedPrice()"></div>
-            </div>
-            
-            <div id="price-calc-container" class="hidden flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl mb-4 text-brand font-bold text-sm">المسافة التقريبية: <span id="est-dist">--</span> كم (25 د.ج/كم)</div>
-            
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex flex-col"><span class="text-sm font-bold text-gray-500 mb-2">السعر (د.ج)</span><div class="flex items-center bg-gray-100 rounded-xl p-1 w-fit" dir="ltr"><button onclick="window.adjPrice(-10)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg cursor-pointer">-</button><span class="px-4 font-black text-3xl text-brand w-24 text-center" id="pass-price">100</span><button onclick="window.adjPrice(10)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg cursor-pointer">+</button></div></div>
-            </div>
-            
-            <button onclick="window.requestRideLive()" class="btn-primary py-4 text-xl shadow-lg flex justify-center items-center gap-3">إرسال الطلب للسائقين <i class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
-
-    <div id="screen-choose-driver" class="screen flex flex-col bg-background">
-        <div class="p-6 pt-10 flex justify-between items-center bg-white shadow-sm sticky top-0 z-20"><button onclick="window.cancelRideRequest()" class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center border-none cursor-pointer"><i class="fas fa-times"></i></button><h2 class="text-xl font-black text-dark">البحث عن سائق</h2><div class="w-10"></div></div>
-        <div class="p-4 flex-1 flex flex-col items-center justify-center text-brand">
-            <div class="relative w-32 h-32 flex justify-center items-center mb-8"><div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div><i class="fas fa-car-side text-5xl bg-white w-20 h-20 rounded-full flex items-center justify-center shadow-lg relative z-10"></i></div>
-            <p class="text-dark font-black text-2xl mb-2">جاري البحث...</p><p class="text-gray-500 font-bold text-center">الطلب معروض الآن في السحابة على السائقين المتاحين.</p>
-        </div>
-    </div>
-
-    <!-- Active Ride Screen (Shared) -->
-    <div id="screen-ride-active" class="screen relative h-screen overflow-hidden bg-background">
-        <div id="ride-map" class="ride-map-container"></div>
-        <div class="absolute top-8 right-6 z-20"><div class="bg-white px-4 py-2 rounded-full shadow-md border border-gray-100 flex items-center font-bold text-green-500 gap-2"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> <span id="active-status-text">الرحلة مؤكدة</span></div></div>
-        <div class="bottom-sheet p-6">
-            <div class="flex justify-between items-center mb-6">
-                <div class="flex items-center gap-4"><div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-2xl border-2 border-brand"><i class="fas fa-user"></i></div><div><h3 id="active-partner-name" class="font-black text-xl text-dark">--</h3><div class="text-yellow-400 text-sm font-bold flex items-center gap-1"><i class="fas fa-star"></i> 5.0</div></div></div>
-                <div class="text-left" dir="ltr"><span id="active-ride-price" class="text-3xl font-black text-brand">--</span></div>
-            </div>
-            <div id="driver-car-info" class="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-200 flex justify-between items-center">
-                <div><p id="active-driver-car" class="font-bold text-dark text-lg" dir="ltr">--</p></div>
-                <div class="bg-white border-2 border-gray-300 px-3 py-1 rounded-lg shadow-sm"><p id="active-driver-plate" class="font-mono font-black text-lg text-dark tracking-widest" dir="ltr">--</p></div>
-            </div>
-            <div id="ride-dest-info" class="bg-blue-50 rounded-2xl p-4 mb-6 border border-blue-100 hidden"><p class="text-xs text-gray-500 font-bold mb-1">الوجهة المطلوبة:</p><p id="active-ride-dest" class="font-bold text-dark text-lg">--</p></div>
-            <div class="flex gap-4">
-                <button onclick="window.finishRide()" class="w-1/3 bg-gray-100 text-dark font-bold py-4 rounded-xl text-lg border-none cursor-pointer hover:bg-gray-200">إنهاء الرحلة</button>
-                <button onclick="window.callPartner()" class="w-2/3 bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center gap-2 border-none cursor-pointer hover:bg-green-600"><i class="fas fa-phone-alt"></i> اتصال <span id="active-partner-phone" dir="ltr" class="font-mono text-sm bg-green-600 px-2 py-1 rounded"></span></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Panel -->
-    <div id="screen-admin-login" class="screen flex items-center justify-center p-6 bg-dark">
-        <div class="bg-white p-8 rounded-[2rem] w-full max-w-md text-center shadow-2xl">
-            <h2 class="text-3xl font-black text-dark mb-6">دخول الإدارة</h2>
-            <input type="password" id="admin-pass" placeholder="كلمة المرور: Ha15041978@" class="id-input text-center mb-6 font-mono text-lg bg-gray-50" dir="ltr">
-            <button onclick="window.loginAdmin()" class="w-full bg-brand text-white font-bold py-4 rounded-xl text-xl border-none cursor-pointer hover:bg-brandDark transition">دخول آمن</button>
-            <button onclick="window.showScreen('screen-welcome')" class="mt-6 text-gray-400 font-bold bg-transparent border-none cursor-pointer hover:text-dark">العودة للتطبيق</button>
-        </div>
-    </div>
-    <div id="screen-admin-dashboard" class="screen flex flex-col bg-gray-50">
-        <div class="bg-dark text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md"><h2 class="font-black text-xl"><i class="fas fa-shield-alt text-brand"></i> لوحة التحكم الذكية</h2><button onclick="window.showScreen('screen-welcome')" class="bg-gray-800 px-4 py-2 rounded-lg text-sm font-bold border-none text-white cursor-pointer hover:bg-gray-700">خروج</button></div>
-        <div class="bg-white border-b border-gray-200 flex text-sm font-bold overflow-x-auto whitespace-nowrap">
-            <button onclick="window.switchAdminTab('overview')" id="tab-btn-overview" class="px-6 py-4 text-brand border-b-2 border-brand shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition">البيانات</button>
-            <button onclick="window.switchAdminTab('ai')" id="tab-btn-ai" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition"><i class="fas fa-robot text-purple-500 mr-1"></i> AI مراقبة متطورة</button>
-            <button onclick="window.switchAdminTab('api')" id="tab-btn-api" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition">WhatsApp</button>
-        </div>
-        <div class="p-4 flex-1 overflow-y-auto" id="admin-content-area"></div>
-    </div>
-
-    <!-- Core App Engine (Hybrid Sync) -->
+    <!-- استدعاء مكتبات Firebase السحابية عبر الـ CDN -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // استدعاء حزم Firebase الأساسية وقاعدة بيانات Firestore من موزع خدمات الويب
+        import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js)";
 
-        // =========================================================================
-        // 🔴🔴🔴 إعدادات Firebase الخاصة بك 🔴🔴🔴
-        // =========================================================================
-        const MY_OWN_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyDmqYrIn8FuFKIJOmqJc7XtEnpO3p5KFpw",
-            authDomain: "id-algerie-ultra-pro.firebaseapp.com",
-            projectId: "id-algerie-ultra-pro",
-            storageBucket: "id-algerie-ultra-pro.firebasestorage.app",
-            messagingSenderId: "671225961583",
-            appId: "1:671225961583:web:f00a40d51d4d995cd2819a",
-            measurementId: "G-QPP1Z414CM"
+        // 1. كود الاتصال السحابي بمشروعك (مأخوذ مباشرة من إعدادات مشروعك في الصورة)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCsoqh7L_lhjKU5U94ra5T5GmoiPGpGWc4",
+            authDomain: "myprojectname-1a84b.firebaseapp.com",
+            projectId: "myprojectname-1a84b",
+            storageBucket: "myprojectname-1a84b.firebasestorage.app",
+            messagingSenderId: "35220501993",
+            appId: "1:359220501993:web:9f8977ddf06a246ed0bf78",
+            measurementId: "G-MCZC6CY286"
         };
-        
-        let firebaseConfig = MY_OWN_FIREBASE_CONFIG;
-        if (!firebaseConfig) {
-            try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
-        }
 
-        const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null, map: null, rideMap: null, adminMap: null, currentPickupCoords: null };
-        let cloudUsers = [];
-        let cloudRides = [];
-        let cloudApi = { instanceId: '', token: '' };
-        let lastRideCount = 0;
-        let lastActiveStatus = '';
-        let adminCharts = [];
-        let hasShownOfflineWarning = false;
-        
-        let db, auth;
+        // 2. تهيئة الاتصال بفايربيس وقاعدة البيانات
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        // UI Core Methods
-        window.showScreen = (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const t = document.getElementById(id); if(t) t.classList.add('active'); window.closeSidebar(); };
-        window.showToast = (msg, type='success') => { const c = document.getElementById('toast-container'); if(!c) return; const t = document.createElement('div'); t.className = `p-4 rounded-2xl shadow-2xl mb-3 text-sm font-bold flex flex-col items-center justify-center text-center transform transition-all duration-300 translate-y-[20px] opacity-0 w-full ${type==='success'?'bg-dark text-white':'bg-red-500 text-white'}`; t.innerHTML = msg; c.appendChild(t); requestAnimationFrame(()=>t.classList.remove('translate-y-[20px]','opacity-0')); setTimeout(()=>{ t.classList.add('opacity-0','-translate-y-full'); setTimeout(()=>t.remove(),300);}, 4500); };
-        window.openSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '0'; o.style.display='block'; setTimeout(()=>o.style.opacity='1',10); } };
-        window.closeSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '-100%'; o.style.opacity='0'; setTimeout(()=>o.style.display='none',300); } };
-        window.moveNext = (c, n) => { if (c.value.length >= 1) { const nx = document.getElementById(n); if(nx) nx.focus(); } };
-        window.playPing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5); } catch(e) {} };
+        // الإشارة لعناصر واجهة المستخدم
+        const dataForm = document.getElementById('dataForm');
+        const senderNameInput = document.getElementById('senderName');
+        const messageTextInput = document.getElementById('messageText');
+        const statusMessage = document.getElementById('statusMessage');
+        const messagesContainer = document.getElementById('messagesContainer');
 
-        // Hybrid Sync Helper
-        async function safeCloudWrite(action, colName, docId, data) {
-            try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-                const ref = doc(db, 'artifacts', appId, 'public', 'data', colName, docId);
-                if (action === 'set') await setDoc(ref, data); else await updateDoc(ref, data);
-                return true;
-            } catch (e) {
-                console.error("Firestore Error:", e);
-                if(!hasShownOfflineWarning) {
-                    window.showToast('قاعدة البيانات غير معدة جيداً. تعمل المنصة الآن كنسخة استعراضية محلية.', 'error');
-                    hasShownOfflineWarning = true;
-                }
-                return false;
-            }
-        }
+        // مرجع لمجموعة البيانات داخل السحابة (Collection سنطلق عليها اسم "user_messages")
+        const messagesCollection = collection(db, "user_messages");
 
-        // --- System Boot & Seamless UI ---
-        const startApp = async () => {
-            // Instant UI Loading (Zero latency)
-            const savedPhone = localStorage.getItem('id_session_phone');
-            if (savedPhone) {
-                appState.currentUser = { id: savedPhone, phone: savedPhone, fname: 'جاري التزامن...' };
-                document.getElementById('welcome-name').innerText = appState.currentUser.fname;
-                window.showScreen('screen-role');
-            } else {
-                window.showScreen('screen-welcome');
-            }
+        // 3. كود إرسال البيانات إلى السحابة عند إرسال النموذج
+        dataForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            document.getElementById('screen-loading').style.opacity = '0';
-            setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 400);
+            const sender = senderNameInput.value.trim();
+            const message = messageTextInput.value.trim();
 
-            if (!firebaseConfig) return;
+            showStatus("جاري إرسال بياناتك للسحابة...", "text-orange-400");
 
             try {
-                const appInstance = initializeApp(firebaseConfig);
-                auth = getAuth(appInstance);
-                db = getFirestore(appInstance);
-                
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try { await signInWithCustomToken(auth, __initial_auth_token); } catch(e) { await signInAnonymously(auth); }
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch(e) { throw e; }
-                
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
-                        
-                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
-                            cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
-                            if(appState.currentUser && appState.currentUser.id) {
-                                const fresh = cloudUsers.find(u => u.id === appState.currentUser.id);
-                                if(fresh) {
-                                    appState.currentUser = fresh;
-                                    document.getElementById('welcome-name').innerText = fresh.fname || 'مستخدم';
-                                }
-                            }
-                        }, (e) => console.log("Users Snapshot Error:", e.message));
-
-                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'rides'), (snap) => {
-                            cloudRides = []; snap.forEach(d => cloudRides.push({ id: d.id, ...d.data() }));
-                            handleRidesLiveUpdate();
-                        }, (e) => console.log("Rides Snapshot Error:", e.message));
-
-                        onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
-                            if(docSnap.exists()) cloudApi = docSnap.data(); 
-                        });
-                    }
+                // إرسال كائن البيانات إلى السحابة
+                await addDoc(messagesCollection, {
+                    name: sender,
+                    text: message,
+                    timestamp: serverTimestamp() // تسجيل الوقت السحابي لترتيب الرسائل بدقة
                 });
-            } catch(e) {
-                console.error("Firebase Boot Error:", e);
-                window.showToast("تعذر الاتصال بالسحابة المركزية، يتم العمل محلياً", "error");
-            }
-        };
-        startApp();
 
-        // --- WhatsApp Logic ---
-        window.sendWhatsAppCode = async () => {
-            const fname = document.getElementById('ob-fname').value.trim();
-            const phone = document.getElementById('ob-phone').value.trim();
-            if(!fname || phone.length < 9) return window.showToast('أدخل الاسم ورقم الهاتف بشكل صحيح', 'error');
-
-            window.tempPhone = phone; window.tempFname = fname; 
-            window.tempOTP = Math.floor(1000 + Math.random() * 9000).toString();
-            
-            const btn = document.getElementById('btn-send-wa');
-            btn.innerHTML = 'جاري الإرسال...'; btn.disabled = true;
-
-            if (cloudApi && cloudApi.instanceId && cloudApi.token) {
-                let fmtPhone = phone.replace(/\s+/g, ''); if(fmtPhone.startsWith('0')) fmtPhone = '+213'+fmtPhone.substring(1);
-                try {
-                    await fetch(`https://api.ultramsg.com/${cloudApi.instanceId}/messages/chat`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ token: cloudApi.token, to: fmtPhone, body: `مرحباً ${fname}\nرمزك لـ iD هو: *${window.tempOTP}*` })
-                    });
-                } catch (e) { setTimeout(() => showFakeWA(), 1000); }
-            } else {
-                setTimeout(() => showFakeWA(), 1000);
-            }
-            
-            document.getElementById('otp-display-phone').innerText = '+213 ' + phone;
-            btn.innerHTML = 'استلام الرمز'; btn.disabled = false;
-            window.showScreen('screen-otp');
-        };
-
-        const showFakeWA = () => {
-            document.getElementById('push-code').innerText = window.tempOTP;
-            document.getElementById('push-notification').classList.add('show');
-            window.playPing();
-            setTimeout(() => document.getElementById('push-notification').classList.remove('show'), 6000);
-        };
-
-        window.verifyOTP = async () => {
-            const input = [1,2,3,4].map(i => document.getElementById(`otp-${i}`).value).join('');
-            if(input === window.tempOTP || input === '0000') {
-                document.getElementById('push-notification').classList.remove('show');
+                // تصفير الخانات البرمجية بعد نجاح الإرسال
+                messageTextInput.value = '';
+                showStatus("✅ تم حفظ البيانات في السحابة بنجاح!", "text-emerald-400");
                 
-                let u = cloudUsers.find(x => x.id === window.tempPhone);
-                if(!u) {
-                    u = { id: window.tempPhone, fname: window.tempFname, phone: window.tempPhone, type: 'passenger', status: 'active' };
-                    const success = await safeCloudWrite('set', 'users', u.id, u);
-                    if (!success) cloudUsers.push(u); // Local mock
-                }
-                appState.currentUser = u;
-                localStorage.setItem('id_session_phone', u.id);
-                document.getElementById('welcome-name').innerText = u.fname;
-                window.showScreen('screen-role');
-            } else {
-                window.showToast('كود خاطئ', 'error');
+                setTimeout(() => {
+                    statusMessage.classList.add('hidden');
+                }, 3000);
+
+            } catch (error) {
+                console.error("حدث خطأ أثناء الاتصال بالخادم السحابي:", error);
+                showStatus("❌ فشل الاتصال بالسحابة: " + error.message, "text-rose-400");
             }
-        };
+        });
 
-        window.logoutApp = () => {
-            appState.currentUser = null; appState.role = null;
-            localStorage.removeItem('id_session_phone');
-            window.showScreen('screen-welcome');
-        };
+        // دالة مساعدة لتحديث حالة الإرسال
+        function showStatus(text, colorClass) {
+            statusMessage.className = `mt-3 text-sm text-center ${colorClass}`;
+            statusMessage.innerText = text;
+        }
 
-        window.selectRole = (role) => {
-            if(!appState.currentUser) return window.showScreen('screen-welcome');
-            appState.role = role;
-            document.getElementById('sidebar-name').innerText = appState.currentUser.fname || 'مستخدم';
-            document.getElementById('sidebar-role').innerText = role === 'driver' ? 'سائق' : 'راكب';
-            
-            if(role === 'passenger') {
-                window.showScreen('screen-passenger-home');
-                initMap('map', true);
-            } else {
-                if(!appState.currentUser.car) {
-                    window.showScreen('screen-driver-reg');
-                } else {
-                    checkDriverStatus(appState.currentUser);
-                }
-            }
-        };
-        window.switchRole = () => window.selectRole(appState.role === 'passenger' ? 'driver' : 'passenger');
+        // 4. كود استقبال واستماع البيانات السحابية الحية (Live Stream)
+        // سيقوم هذا الكود بتحديث الواجهة تلقائياً وبسرعة بمجرد إضافة بيانات جديدة في السحابة
+        const q = query(messagesCollection, orderBy("timestamp", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            messagesContainer.innerHTML = ''; // تفريغ الحاوية قبل التحديث
 
-        // --- Driver Logic ---
-        window.submitDriverReg = async () => {
-            const car = document.getElementById('reg-car').value.trim();
-            const mat = document.getElementById('reg-mat').value.trim();
-            if(!car || !mat) return window.showToast('أدخل بيانات السيارة', 'error');
-            
-            const updates = { type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now() };
-            const success = await safeCloudWrite('update', 'users', appState.currentUser.id, updates);
-            if (!success) Object.assign(appState.currentUser, updates); // local mock
-
-            window.showToast('تم التسجيل وبدء الفترة التجريبية!');
-            checkDriverStatus(appState.currentUser);
-        };
-
-        const checkDriverStatus = (user) => {
-            if(user.status === 'approved' || user.status === 'trial') {
-                document.getElementById('driver-status-text').innerText = user.status === 'approved' ? 'مفعل وجاهز' : 'تجريبي وجاهز';
-                window.showScreen('screen-driver-dash');
-                handleRidesLiveUpdate();
-            } else {
-                window.showScreen('screen-driver-payment');
-            }
-        };
-
-        window.paySubscription = async () => {
-            await safeCloudWrite('update', 'users', appState.currentUser.id, { status: 'pending_approval' });
-            window.showToast('تم إرسال طلب التفعيل للإدارة.');
-            window.showScreen('screen-welcome');
-        };
-
-        // --- Passenger Logic (Pin on Map) ---
-        window.calculateEstimatedPrice = () => {
-            const dest = document.getElementById('pass-dest').value;
-            if(dest.length > 2) {
-                let km = Math.floor(Math.random() * 10) + 2; 
-                let p = Math.round((km * 25) / 10) * 10;
-                document.getElementById('est-dist').innerText = km;
-                appState.priceBase = p;
-                document.getElementById('pass-price').innerText = p;
-                document.getElementById('price-calc-container').classList.remove('hidden');
-            } else {
-                document.getElementById('price-calc-container').classList.add('hidden');
-            }
-        };
-        window.adjPrice = (val) => { appState.priceBase = Math.max(50, appState.priceBase + val); document.getElementById('pass-price').innerText = appState.priceBase; };
-
-        window.requestRideLive = async () => {
-            const dest = document.getElementById('pass-dest').value.trim();
-            if(!dest) return window.showToast('أدخل الوجهة', 'error');
-            
-            const rideId = 'R' + Date.now();
-            appState.activeRideId = rideId;
-            
-            let pickupTxt = "موقع الخريطة المحدد";
-            if(appState.currentPickupCoords) pickupTxt = `(${appState.currentPickupCoords.lat.toFixed(4)}, ${appState.currentPickupCoords.lng.toFixed(4)})`;
-
-            const rideData = {
-                id: rideId,
-                passPhone: appState.currentUser.phone,
-                passName: appState.currentUser.fname || 'راكب',
-                pickup: pickupTxt,
-                pickupCoords: appState.currentPickupCoords || {lat: 36.75, lng: 3.04},
-                dest: dest,
-                price: appState.priceBase,
-                status: 'pending',
-                timestamp: Date.now()
-            };
-
-            const success = await safeCloudWrite('set', 'rides', rideId, rideData);
-            if (!success) {
-                cloudRides.push(rideData); // Local mock
-                handleRidesLiveUpdate(); // trigger local UI
-            }
-
-            window.showScreen('screen-choose-driver');
-            window.playPing();
-        };
-
-        window.cancelRideRequest = async () => {
-            if(appState.activeRideId) {
-                await safeCloudWrite('update', 'rides', appState.activeRideId, { status: 'cancelled' });
-                appState.activeRideId = null;
-            }
-            window.showScreen('screen-passenger-home');
-        };
-
-        // --- Live Matchmaking Engine ---
-        const handleRidesLiveUpdate = () => {
-            if(appState.role === 'driver') {
-                const now = Date.now();
-                const pendingRides = cloudRides.filter(r => r.status === 'pending' && (now - r.timestamp < 900000)); // 15 mins timeout
-                
-                const list = document.getElementById('driver-rides-list');
-                const empty = document.getElementById('driver-empty-state');
-                
-                if(pendingRides.length > lastRideCount) {
-                    window.playPing();
-                    window.showToast('طلب جديد متاح! 🚨', 'success');
-                }
-                lastRideCount = pendingRides.length;
-
-                if(pendingRides.length === 0) { list.innerHTML = ''; empty.style.display = 'flex'; return; }
-                empty.style.display = 'none';
-
-                let html = '';
-                pendingRides.forEach(r => {
-                    html += `
-                    <div class="bg-white rounded-2xl p-5 shadow-lg border border-brand/20 animate-fade-in mb-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h4 class="font-black text-dark text-lg text-brand"><i class="fas fa-user-circle"></i> ${r.passName}</h4>
-                                <p class="text-sm font-bold text-gray-500 mt-1"><i class="fas fa-map-marker-alt text-brand"></i> الموقع: ${r.pickup}</p>
-                                <p class="text-sm font-bold text-gray-500"><i class="fas fa-flag-checkered text-red-500"></i> الوجهة: ${r.dest}</p>
-                            </div>
-                            <span class="bg-red-50 text-red-500 px-2 py-1 rounded text-xs font-bold animate-pulse">جديد حي</span>
-                        </div>
-                        <div class="flex justify-between items-center pt-4 border-t border-gray-100">
-                            <span class="text-3xl font-black text-dark" dir="ltr">${r.price} DZD</span>
-                            <button onclick="window.driverAcceptRide('${r.id}')" class="bg-green-500 text-white font-bold px-8 py-3 rounded-xl hover:bg-green-600 border-none cursor-pointer shadow-md">قبول الطلب</button>
-                        </div>
+            if (snapshot.empty) {
+                messagesContainer.innerHTML = `
+                    <div class="text-slate-500 text-center py-8">
+                        قاعدة البيانات السحابية فارغة حالياً.<br>كن أول من يضيف بياناتك!
                     </div>`;
-                });
-                list.innerHTML = html;
-            } 
-            else if(appState.role === 'passenger' && appState.activeRideId) {
-                const myRide = cloudRides.find(r => r.id === appState.activeRideId);
-                if(myRide) {
-                    if(myRide.status === 'accepted' && lastActiveStatus !== 'accepted') {
-                        lastActiveStatus = 'accepted';
-                        window.playPing();
-                        window.showToast('تم قبول طلبك! السائق في الطريق 🚕', 'success');
-                        setupActiveRideScreen(myRide, 'passenger');
-                    } else if (myRide.status === 'cancelled' && lastActiveStatus !== 'cancelled') {
-                        lastActiveStatus = 'cancelled';
-                        window.showToast('انتهت صلاحية الطلب أو ألغي.', 'error');
-                        window.showScreen('screen-passenger-home');
-                        appState.activeRideId = null;
-                    }
-                }
+                return;
             }
-        };
 
-        window.driverAcceptRide = async (rideId) => {
-            const r = cloudRides.find(x => x.id === rideId);
-            if(r && r.status === 'pending') {
-                const updates = {
-                    status: 'accepted',
-                    driverPhone: appState.currentUser.phone,
-                    driverName: appState.currentUser.fname || 'سائق',
-                    driverCar: appState.currentUser.car,
-                    driverMat: appState.currentUser.matricule
-                };
-                await safeCloudWrite('update', 'rides', rideId, updates);
-                appState.activeRideId = rideId;
-                Object.assign(r, updates); // local optimistic update
-                setupActiveRideScreen(r, 'driver'); 
-            } else {
-                window.showToast('عذراً، أخذها سائق آخر أو ألغاها الراكب.', 'error');
-            }
-        };
-
-        const setupActiveRideScreen = (ride, viewAs) => {
-            window.showScreen('screen-ride-active');
-            initMap('ride-map', false);
-            setTimeout(() => { if(appState.rideMap) appState.rideMap.invalidateSize(); }, 300);
-
-            document.getElementById('active-ride-price').innerText = ride.price + ' DZD';
-
-            if(viewAs === 'passenger') {
-                document.getElementById('active-status-text').innerText = 'السائق متوجه إليك';
-                document.getElementById('active-partner-name').innerText = ride.driverName || 'سائق';
-                document.getElementById('active-partner-phone').innerText = ride.driverPhone;
-                document.getElementById('driver-car-info').classList.remove('hidden');
-                document.getElementById('ride-dest-info').classList.add('hidden');
-                document.getElementById('active-driver-car').innerText = ride.driverCar;
-                document.getElementById('active-driver-plate').innerText = ride.driverMat;
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const messageCard = document.createElement('div');
+                messageCard.className = "bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-1";
                 
-                if(appState.rideMap && ride.pickupCoords) {
-                    L.marker([ride.pickupCoords.lat, ride.pickupCoords.lng], { icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:#00A3FF; width:18px; height:18px; border-radius:50%; border:3px solid white;"></div>`, iconSize: [18, 18] }) }).addTo(appState.rideMap);
-                    appState.rideMap.flyTo([ride.pickupCoords.lat, ride.pickupCoords.lng], 15);
-                }
+                // صياغة الوقت بشكل مبسط
+                const timeString = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : 'الآن';
 
-            } else {
-                document.getElementById('active-status-text').innerText = 'أنت متوجه للراكب';
-                document.getElementById('active-partner-name').innerText = ride.passName || 'راكب';
-                document.getElementById('active-partner-phone').innerText = ride.passPhone;
-                document.getElementById('driver-car-info').classList.add('hidden');
-                document.getElementById('ride-dest-info').classList.remove('hidden');
-                document.getElementById('active-ride-dest').innerText = ride.dest;
-
-                if(appState.rideMap && ride.pickupCoords) {
-                    appState.rideMap.flyTo([ride.pickupCoords.lat, ride.pickupCoords.lng], 15);
-                    L.marker([ride.pickupCoords.lat, ride.pickupCoords.lng], { icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:#00A3FF; width:24px; height:24px; border-radius:50%; border:3px solid white; display:flex; justify-content:center; align-items:center; color:white; font-size:10px;"><i class="fas fa-user"></i></div>`, iconSize: [24, 24] }) }).addTo(appState.rideMap);
-                }
-            }
-        };
-
-        window.finishRide = async () => {
-            if(appState.activeRideId) {
-                await safeCloudWrite('update', 'rides', appState.activeRideId, { status: 'completed' });
-                appState.activeRideId = null;
-                lastActiveStatus = '';
-            }
-            window.showToast('تم إنهاء الرحلة!', 'success');
-            if(appState.role === 'driver') window.showScreen('screen-driver-dash'); else window.showScreen('screen-passenger-home');
-        };
-        window.callPartner = () => window.location.href = `tel:${document.getElementById('active-partner-phone').innerText}`;
-
-        // --- Maps Core (With Interactive Pin) ---
-        const initMap = (elementId, isSelectable = false) => {
-            if(appState[elementId]) return; 
-            try {
-                appState[elementId] = L.map(elementId, { zoomControl: false }).setView([36.75, 3.04], 14);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(appState[elementId]);
-                
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(pos => {
-                        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-                        appState[elementId].flyTo([lat, lng], 16);
-                        if(isSelectable) appState.currentPickupCoords = {lat, lng};
-                    });
-                }
-
-                if(isSelectable) {
-                    const pin = document.getElementById('pickup-pin');
-                    const display = document.getElementById('pass-pickup-display');
-                    appState[elementId].on('movestart', () => { if(pin) pin.classList.add('moving'); });
-                    appState[elementId].on('moveend', () => { 
-                        if(pin) pin.classList.remove('moving');
-                        const center = appState[elementId].getCenter();
-                        appState.currentPickupCoords = { lat: center.lat, lng: center.lng };
-                        if(display) display.value = `إحداثيات: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
-                    });
-                }
-            } catch(e){}
-        };
-
-        // --- Advanced AI Admin Panel ---
-        window.loginAdmin = () => {
-            if(document.getElementById('admin-pass').value === 'Ha15041978@') {
-                window.showScreen('screen-admin-dashboard'); window.switchAdminTab('ai');
-            } else window.showToast('رمز خاطئ', 'error');
-        };
-
-        window.switchAdminTab = (tab) => {
-            ['overview', 'ai', 'api'].forEach(t => {
-                const b = document.getElementById(`tab-btn-${t}`);
-                if(b) { if(t===tab) { b.classList.add('text-brand','border-brand'); b.classList.remove('text-gray-500','border-transparent'); } else { b.classList.remove('text-brand','border-brand'); b.classList.add('text-gray-500','border-transparent'); } }
+                messageCard.innerHTML = `
+                    <div class="flex justify-between items-center text-xs text-slate-500">
+                        <span class="font-bold text-orange-400">${escapeHTML(data.name)}</span>
+                        <span>${timeString}</span>
+                    </div>
+                    <p class="text-slate-200 text-sm leading-relaxed">${escapeHTML(data.text)}</p>
+                `;
+                messagesContainer.appendChild(messageCard);
             });
-            const content = document.getElementById('admin-content-area');
-            
-            if(tab === 'overview') {
-                const passengers = cloudUsers.filter(u => u.type === 'passenger');
-                const drivers = cloudUsers.filter(u => u.type === 'driver');
-                content.innerHTML = `
-                    <h3 class="font-black text-xl mb-4 text-dark">السائقين (${drivers.length})</h3>
-                    <div class="space-y-3 mb-8">
-                        ${drivers.map(d => {
-                            let badge = d.status === 'trial' ? '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">تجريبي</span>' : 
-                                        d.status === 'pending_approval' ? `<button onclick="window.adminApproveDriver('${d.id}')" class="bg-green-500 text-white px-3 py-1 rounded shadow text-xs cursor-pointer border-none font-bold">تفعيل</button>` : 
-                                        '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">مفعل</span>';
-                            return `<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><div><p class="font-bold text-lg">${d.fname||'سائق'}</p><p class="text-xs text-gray-500 font-mono" dir="ltr">${d.phone}</p><p class="text-xs text-gray-400 mt-1">${d.car} | ${d.matricule}</p></div>${badge}</div>`
-                        }).join('')}
-                    </div>
-                    <h3 class="font-black text-xl mb-4 text-dark">الركاب (${passengers.length})</h3>
-                    <div class="space-y-3">${passengers.map(p => `<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><span class="font-bold">${p.fname||'راكب'}</span><span class="text-sm font-mono text-gray-500" dir="ltr">${p.phone}</span></div>`).join('')}</div>
-                `;
-            } else if(tab === 'ai') {
-                let totalRev = cloudRides.filter(r => r.status === 'completed').reduce((acc, r) => acc + r.price, 0);
-                let activeRidesCount = cloudRides.filter(r => r.status === 'accepted' || r.status === 'pending').length;
-                let approvedDrivers = cloudUsers.filter(u => u.status === 'approved').length;
-                let subMoney = approvedDrivers * 2000; 
-                let driversCount = cloudUsers.filter(u=>u.type==='driver').length;
-                
-                content.innerHTML = `
-                    <div class="bg-dark text-white p-6 rounded-2xl shadow-xl mb-6 relative overflow-hidden">
-                        <i class="fas fa-robot absolute -left-4 -bottom-4 text-8xl text-white opacity-10"></i>
-                        <h3 class="font-black text-xl mb-4 flex items-center gap-2"><i class="fas fa-satellite text-brandLight animate-pulse"></i> AI المراقبة الحية (Radar)</h3>
-                        <div class="grid grid-cols-2 gap-3 mb-6">
-                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">أموال الحساب الجاري (CCP)</p><p class="text-2xl font-black text-brandLight" dir="ltr">${subMoney} DZD</p></div>
-                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">دوران الأموال (الرحلات)</p><p class="text-2xl font-black text-green-400" dir="ltr">${totalRev} DZD</p></div>
-                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">سيارات على النظام</p><p class="text-2xl font-black text-white" dir="ltr">${driversCount} 🚗</p></div>
-                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">رحلات جارية الآن</p><p class="text-2xl font-black text-red-400" dir="ltr">${activeRidesCount} ⚡</p></div>
-                        </div>
-                    </div>
+        }, (error) => {
+            console.error("فشل الاستماع للبيانات السحابية:", error);
+            messagesContainer.innerHTML = `<div class="text-rose-400 text-center py-8">خطأ في جلب البيانات: ${error.message}</div>`;
+        });
 
-                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm mb-4">
-                        <h4 class="font-bold text-dark mb-4 border-b pb-2"><i class="fas fa-chart-pie text-brand mr-2"></i> إحصائيات السائقين</h4>
-                        <div class="relative h-48 w-full"><canvas id="aiChart"></canvas></div>
-                    </div>
-
-                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm mb-4">
-                        <h4 class="font-bold text-dark mb-3 border-b pb-2"><i class="fas fa-map-marked-alt text-brand mr-2"></i> رادار المراقبة</h4>
-                        <div id="admin-live-map" class="admin-map-container bg-gray-100"></div>
-                    </div>
-                `;
-
-                // Render Chart.js
-                adminCharts.forEach(c => c.destroy()); adminCharts = [];
-                setTimeout(() => {
-                    const ctx = document.getElementById('aiChart').getContext('2d');
-                    const trialCount = cloudUsers.filter(u=>u.status==='trial').length;
-                    const pendingCount = cloudUsers.filter(u=>u.status==='pending_approval').length;
-                    adminCharts.push(new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['مفعل (تم الدفع)', 'تجريبي', 'في الانتظار'],
-                            datasets: [{ data: [approvedDrivers, trialCount, pendingCount], backgroundColor: ['#10B981', '#3B82F6', '#F59E0B'], borderWidth: 0 }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: {font: {family: 'Cairo'}} } } }
-                    }));
-                }, 100);
-
-                // Render Map in Admin
-                setTimeout(() => {
-                    if(appState.adminMap) { appState.adminMap.remove(); appState.adminMap = null; }
-                    appState.adminMap = L.map('admin-live-map', { zoomControl: false }).setView([36.75, 3.04], 6);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(appState.adminMap);
-                    
-                    cloudUsers.filter(u=>u.type==='driver').forEach((d, i) => {
-                        let lat = 36.75 + (Math.random()*2 - 1); let lng = 3.04 + (Math.random()*2 - 1);
-                        L.marker([lat, lng], { icon: L.divIcon({ className: 'admin-marker', html: `<div style="background:#1e293b; color:white; width:28px; height:28px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2px solid #00A3FF; font-size:12px; shadow: 0 4px 6px rgba(0,0,0,0.3);"><i class="fas fa-car"></i></div>`, iconSize: [28,28] }) }).addTo(appState.adminMap);
-                    });
-                }, 300);
-
-            } else {
-                content.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-xs font-bold mb-4">انسخ Instance و Token من حسابك في Ultramsg ليتم إرسال الرسائل الحقيقية. هذه البيانات محفوظة سحابياً وآمنة.</div>
-                        <div><label class="block text-sm font-bold mb-2">Instance ID (Ultramsg)</label><input type="text" id="api-instance" value="${cloudApi.instanceId||''}" class="id-input font-mono" dir="ltr"></div>
-                        <div><label class="block text-sm font-bold mb-2">Token</label><input type="text" id="api-token" value="${cloudApi.token||''}" class="id-input font-mono" dir="ltr"></div>
-                        <button onclick="window.saveApi()" class="btn-primary py-4 mt-2 border-none">حفظ وتأمين بالسحابة</button>
-                    </div>
-                `;
-            }
-        };
-
-        window.saveApi = async () => {
-            await safeCloudWrite('set', 'settings', 'api', { instanceId: document.getElementById('api-instance').value.trim(), token: document.getElementById('api-token').value.trim() });
-            window.showToast('تم الحفظ في السحابة بنجاح!');
-        };
-
-        window.adminApproveDriver = async (docId) => {
-            await safeCloudWrite('update', 'users', docId, { status: 'approved' });
-            window.showToast('تم تفعيل السائق!');
-            window.switchAdminTab('overview');
-        };
+        // دالة حماية لمنع إدخال أكواد خبيثة (XSS Protection)
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
     </script>
 </body>
 </html>
