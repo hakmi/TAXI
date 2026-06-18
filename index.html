@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         tailwind.config = {
@@ -29,7 +30,7 @@
         .screen.active { display: block; z-index: 10; opacity: 1; }
         
         .map-container { height: 55vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; }
-        .admin-map-container { height: 400px; width: 100%; border-radius: 1rem; z-index: 1; position: relative; overflow: hidden; border: 2px solid #E2E8F0; }
+        .admin-map-container { height: 350px; width: 100%; border-radius: 1rem; z-index: 1; position: relative; overflow: hidden; border: 2px solid #E2E8F0; }
         .ride-map-container { height: 60vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; }
         
         .bottom-sheet { position: fixed; bottom: 0; width: 100%; border-radius: 28px 28px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.08); z-index: 20; background: #ffffff; display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; padding-bottom: env(safe-area-bottom); }
@@ -56,30 +57,11 @@
 
         #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.5s;}
         
-        /* Central Map Pin for passenger location selection */
-        .map-center-pin {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -100%);
-            z-index: 1000;
-            pointer-events: none;
-            color: #00A3FF;
-            text-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            font-size: 2.5rem;
-            transition: transform 0.1s;
-        }
-        .map-center-pin.moving { transform: translate(-50%, -120%); color: #007BFF; }
-        .map-center-dot {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px; height: 8px;
-            background-color: rgba(0,0,0,0.2);
-            border-radius: 50%;
-            z-index: 999;
-            pointer-events: none;
-        }
+        /* Central Map Pin for precision */
+        .map-center-pin-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
+        .map-center-pin { color: #00A3FF; font-size: 3rem; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); transition: transform 0.2s ease; }
+        .map-center-pin.moving { transform: translateY(-15px); color: #007BFF; }
+        .map-center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background-color: rgba(0,0,0,0.15); border-radius: 50%; z-index: 999; pointer-events: none; }
     </style>
 </head>
 <body class="antialiased">
@@ -91,10 +73,10 @@
             <span class="text-4xl font-black text-brand">iD</span>
         </div>
         <h2 class="text-xl font-bold text-dark mb-2">جاري الاتصال...</h2>
-        <p class="text-gray-500 text-sm font-semibold">مزامنة السحابة المباشرة ☁️</p>
+        <p class="text-gray-500 text-sm font-semibold" id="loading-text">مزامنة السحابة المباشرة ☁️</p>
     </div>
 
-    <!-- WhatsApp Push Notification -->
+    <!-- WhatsApp Push Notification (Fallback/Visualizer) -->
     <div id="push-notification">
         <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl shadow-md shrink-0"><i class="fab fa-whatsapp"></i></div>
         <div class="flex-1 text-left" dir="ltr">
@@ -119,7 +101,7 @@
         
         <div class="flex-1 py-4">
             <a href="#" onclick="window.switchRole()" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-exchange-alt w-6 text-xl text-brand text-center"></i> <span class="font-bold">تغيير الدور (سائق/راكب)</span></a>
-            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">رحلات المدينة</span></a>
+            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">الرحلات</span></a>
         </div>
         
         <div class="p-6 mt-auto border-t border-gray-100">
@@ -142,7 +124,7 @@
                 </div>
             </div>
             <h1 class="text-4xl font-black mb-4 text-dark leading-tight tracking-wider" dir="ltr">iD Algérie</h1>
-            <p class="text-gray-500 font-semibold text-lg">قاعدة بيانات سحابية موحدة ☁️</p>
+            <p class="text-gray-500 font-semibold text-lg">أنت من يقترح السعر.. نقل ذكي 🚕</p>
         </div>
         
         <div class="p-6 pb-10 space-y-3 z-10 relative bg-white w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -257,24 +239,26 @@
     <div id="screen-passenger-home" class="screen relative h-screen overflow-hidden">
         <div class="relative w-full h-[55vh]">
             <div id="map" class="w-full h-full"></div>
+            
             <!-- Center Pin for exact location selection -->
             <div class="map-center-dot"></div>
-            <i class="fas fa-map-marker-alt map-center-pin" id="pickup-pin"></i>
+            <div class="map-center-pin-container" id="pickup-pin-container">
+                <i class="fas fa-map-marker-alt map-center-pin" id="pickup-pin"></i>
+            </div>
             
             <div class="absolute top-8 left-0 w-full px-6 z-[1000] flex justify-between items-center pointer-events-none">
                 <button onclick="window.openSidebar()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-dark shadow-lg pointer-events-auto border border-gray-100 border-none cursor-pointer"><i class="fas fa-bars text-xl"></i></button>
             </div>
             
-            <!-- Map Instruction overlay -->
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-dark text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg z-[1000] opacity-90 text-center whitespace-nowrap pointer-events-none">
-                حرك الخريطة لتحديد مكانك بدقة
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-dark text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg z-[1000] opacity-90 text-center whitespace-nowrap pointer-events-none flex items-center gap-2">
+                <i class="fas fa-hand-pointer"></i> حرك الخريطة لتحديد مكانك
             </div>
         </div>
 
         <div class="bottom-sheet p-6">
             <h3 class="font-black text-2xl mb-4 text-dark">إلى أين تذهب؟</h3>
             <div class="bg-background rounded-2xl p-4 mb-4 border border-gray-200">
-                <div class="flex items-center gap-4"><div class="w-3 h-3 bg-brand rounded-full"></div><input type="text" id="pass-pickup-display" value="موقعي (حسب الخريطة)" class="w-full bg-transparent text-gray-500 font-bold text-sm outline-none border-none" readonly></div>
+                <div class="flex items-center gap-4"><div class="w-3 h-3 bg-brand rounded-full"></div><input type="text" id="pass-pickup-display" value="موقعي (حسب مؤشر الخريطة)" class="w-full bg-transparent text-gray-500 font-bold text-sm outline-none border-none" readonly></div>
                 <div class="w-full h-px bg-gray-200 my-3"></div>
                 <div class="flex items-center gap-4"><div class="w-3 h-3 bg-red-500 rounded-full"></div><input type="text" id="pass-dest" placeholder="أدخل وجهتك هنا..." class="w-full bg-transparent text-dark font-black text-xl outline-none border-none" oninput="window.calculateEstimatedPrice()"></div>
             </div>
@@ -312,8 +296,8 @@
             </div>
             <div id="ride-dest-info" class="bg-blue-50 rounded-2xl p-4 mb-6 border border-blue-100 hidden"><p class="text-xs text-gray-500 font-bold mb-1">الوجهة المطلوبة:</p><p id="active-ride-dest" class="font-bold text-dark text-lg">--</p></div>
             <div class="flex gap-4">
-                <button onclick="window.finishRide()" class="w-1/3 bg-gray-100 text-dark font-bold py-4 rounded-xl text-lg border-none cursor-pointer">إنهاء</button>
-                <button onclick="window.callPartner()" class="w-2/3 bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center gap-2 border-none cursor-pointer"><i class="fas fa-phone-alt"></i> اتصال <span id="active-partner-phone" dir="ltr" class="font-mono text-sm bg-green-600 px-2 py-1 rounded"></span></button>
+                <button onclick="window.finishRide()" class="w-1/3 bg-gray-100 text-dark font-bold py-4 rounded-xl text-lg border-none cursor-pointer hover:bg-gray-200">إنهاء الرحلة</button>
+                <button onclick="window.callPartner()" class="w-2/3 bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center gap-2 border-none cursor-pointer hover:bg-green-600"><i class="fas fa-phone-alt"></i> اتصال <span id="active-partner-phone" dir="ltr" class="font-mono text-sm bg-green-600 px-2 py-1 rounded"></span></button>
             </div>
         </div>
     </div>
@@ -324,14 +308,14 @@
             <h2 class="text-3xl font-black text-dark mb-6">دخول الإدارة</h2>
             <input type="password" id="admin-pass" placeholder="كلمة المرور: Ha15041978@" class="id-input text-center mb-6 font-mono text-lg bg-gray-50" dir="ltr">
             <button onclick="window.loginAdmin()" class="w-full bg-brand text-white font-bold py-4 rounded-xl text-xl border-none cursor-pointer hover:bg-brandDark transition">دخول آمن</button>
-            <button onclick="window.showScreen('screen-welcome')" class="mt-6 text-gray-400 font-bold bg-transparent border-none cursor-pointer">العودة للتطبيق</button>
+            <button onclick="window.showScreen('screen-welcome')" class="mt-6 text-gray-400 font-bold bg-transparent border-none cursor-pointer hover:text-dark">العودة للتطبيق</button>
         </div>
     </div>
     <div id="screen-admin-dashboard" class="screen flex flex-col bg-gray-50">
         <div class="bg-dark text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md"><h2 class="font-black text-xl"><i class="fas fa-shield-alt text-brand"></i> لوحة التحكم الذكية</h2><button onclick="window.showScreen('screen-welcome')" class="bg-gray-800 px-4 py-2 rounded-lg text-sm font-bold border-none text-white cursor-pointer hover:bg-gray-700">خروج</button></div>
         <div class="bg-white border-b border-gray-200 flex text-sm font-bold overflow-x-auto whitespace-nowrap">
             <button onclick="window.switchAdminTab('overview')" id="tab-btn-overview" class="px-6 py-4 text-brand border-b-2 border-brand shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition">البيانات</button>
-            <button onclick="window.switchAdminTab('ai')" id="tab-btn-ai" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition"><i class="fas fa-robot text-purple-500 mr-1"></i> AI مراقبة</button>
+            <button onclick="window.switchAdminTab('ai')" id="tab-btn-ai" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition"><i class="fas fa-robot text-purple-500 mr-1"></i> AI مراقبة متطورة</button>
             <button onclick="window.switchAdminTab('api')" id="tab-btn-api" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition">WhatsApp</button>
         </div>
         <div class="p-4 flex-1 overflow-y-auto" id="admin-content-area"></div>
@@ -343,15 +327,25 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Setup using Canvas injected credentials
-        let firebaseConfig = null;
-        try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig || { apiKey: "mock", appId: "mock" });
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
+        // =========================================================================
+        // 🔴🔴🔴 إعدادات Firebase الخاصة بك (استبدل null ببياناتك من Firebase) 🔴🔴🔴
+        // =========================================================================
+        const MY_OWN_FIREBASE_CONFIG = null; 
+        /* مثال:
+        const MY_OWN_FIREBASE_CONFIG = {
+            apiKey: "AIzaSy...",
+            authDomain: "your-app.firebaseapp.com",
+            projectId: "your-app",
+            storageBucket: "your-app.appspot.com",
+            messagingSenderId: "123456",
+            appId: "1:123456:web:abcd"
+        };
+        */
+
+        let firebaseConfig = MY_OWN_FIREBASE_CONFIG;
+        if (!firebaseConfig) {
+            try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+        }
 
         // Core State
         const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null, map: null, rideMap: null, currentPickupCoords: null };
@@ -360,29 +354,30 @@
         let cloudApi = { instanceId: '', token: '' };
         let lastRideCount = 0;
         let lastActiveStatus = '';
+        let adminCharts = [];
+        
+        let db, auth;
 
         // UI Helpers
-        window.showScreen = (id) => { 
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
-            const t = document.getElementById(id); if(t) t.classList.add('active'); 
-            window.closeSidebar(); 
-        };
-        window.showToast = (msg, type='success') => { 
-            const c = document.getElementById('toast-container'); if(!c) return; 
-            const t = document.createElement('div'); 
-            t.className = `p-4 rounded-2xl shadow-2xl mb-3 text-sm font-bold flex flex-col items-center justify-center text-center transform transition-all duration-300 translate-y-[20px] opacity-0 w-full ${type==='success'?'bg-dark text-white':'bg-red-500 text-white'}`; 
-            t.innerHTML = msg; c.appendChild(t); 
-            requestAnimationFrame(()=>t.classList.remove('translate-y-[20px]','opacity-0')); 
-            setTimeout(()=>{ t.classList.add('opacity-0','-translate-y-full'); setTimeout(()=>t.remove(),300);}, 4500); 
-        };
+        window.showScreen = (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const t = document.getElementById(id); if(t) t.classList.add('active'); window.closeSidebar(); };
+        window.showToast = (msg, type='success') => { const c = document.getElementById('toast-container'); if(!c) return; const t = document.createElement('div'); t.className = `p-4 rounded-2xl shadow-2xl mb-3 text-sm font-bold flex flex-col items-center justify-center text-center transform transition-all duration-300 translate-y-[20px] opacity-0 w-full ${type==='success'?'bg-dark text-white':'bg-red-500 text-white'}`; t.innerHTML = msg; c.appendChild(t); requestAnimationFrame(()=>t.classList.remove('translate-y-[20px]','opacity-0')); setTimeout(()=>{ t.classList.add('opacity-0','-translate-y-full'); setTimeout(()=>t.remove(),300);}, 4500); };
         window.openSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '0'; o.style.display='block'; setTimeout(()=>o.style.opacity='1',10); } };
         window.closeSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '-100%'; o.style.opacity='0'; setTimeout(()=>o.style.display='none',300); } };
         window.moveNext = (c, n) => { if (c.value.length >= 1) { const nx = document.getElementById(n); if(nx) nx.focus(); } };
         window.playPing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5); } catch(e) {} };
 
-        // --- System Boot & Cloud Sync ---
+        // --- System Boot & Strict Cloud Sync ---
         const startApp = async () => {
+            if (!firebaseConfig) {
+                document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>تحذير: المنصة غير متصلة (أضف إعدادات Firebase في الكود).</span>";
+                return;
+            }
+
             try {
+                const appInstance = initializeApp(firebaseConfig);
+                auth = getAuth(appInstance);
+                db = getFirestore(appInstance);
+                
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -390,7 +385,8 @@
                 }
                 
                 if (auth.currentUser) {
-                    // Start absolute real-time cloud listeners
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
+                    
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
                         cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
                         if(appState.currentUser) appState.currentUser = cloudUsers.find(u => u.id === appState.currentUser.id) || appState.currentUser;
@@ -404,30 +400,25 @@
                     onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
                         if(docSnap.exists()) cloudApi = docSnap.data(); 
                     });
+
+                    document.getElementById('screen-loading').style.opacity = '0';
+                    setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 500);
+
+                    const savedPhone = localStorage.getItem('id_session_phone');
+                    if (savedPhone) {
+                        setTimeout(() => {
+                            const u = cloudUsers.find(x => x.id === savedPhone);
+                            if(u) {
+                                appState.currentUser = u;
+                                document.getElementById('welcome-name').innerText = u.fname || 'مستخدم';
+                                window.showScreen('screen-role');
+                            } else { window.showScreen('screen-welcome'); }
+                        }, 1000);
+                    } else { window.showScreen('screen-welcome'); }
                 }
             } catch(e) {
                 console.error("Cloud Error:", e);
-                window.showToast("خطأ في الاتصال بالخادم", "error");
-            } finally {
-                // Boot complete
-                document.getElementById('screen-loading').style.opacity = '0';
-                setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 500);
-                
-                const savedPhone = localStorage.getItem('id_session_phone');
-                if (savedPhone) {
-                    setTimeout(() => {
-                        const u = cloudUsers.find(x => x.id === savedPhone);
-                        if(u) {
-                            appState.currentUser = u;
-                            document.getElementById('welcome-name').innerText = u.fname || 'مستخدم';
-                            window.showScreen('screen-role');
-                        } else {
-                            window.showScreen('screen-welcome');
-                        }
-                    }, 800);
-                } else {
-                    window.showScreen('screen-welcome');
-                }
+                document.getElementById('loading-text').innerHTML = "<span class='text-red-500'>خطأ في الاتصال بقاعدة البيانات. تأكد من إعدادات الصلاحيات.</span>";
             }
         };
         startApp();
@@ -473,6 +464,7 @@
             const input = [1,2,3,4].map(i => document.getElementById(`otp-${i}`).value).join('');
             if(input === window.tempOTP || input === '0000') {
                 document.getElementById('push-notification').classList.remove('show');
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                 
                 let u = cloudUsers.find(x => x.id === window.tempPhone);
                 if(!u) {
@@ -519,7 +511,7 @@
             const car = document.getElementById('reg-car').value.trim();
             const mat = document.getElementById('reg-mat').value.trim();
             if(!car || !mat) return window.showToast('أدخل بيانات السيارة', 'error');
-            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', appState.currentUser.id), {
                 type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now()
             });
@@ -539,6 +531,7 @@
 
         window.paySubscription = async () => {
             if(!auth.currentUser) return;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', appState.currentUser.id), { status: 'pending_approval' });
             window.showToast('تم إرسال طلب التفعيل للإدارة.');
             window.showScreen('screen-welcome');
@@ -569,11 +562,12 @@
             appState.activeRideId = rideId;
             
             // Pickup details from map center
-            let pickupTxt = "إحداثيات محددة على الخريطة";
+            let pickupTxt = "موقع الخريطة المحدد";
             if(appState.currentPickupCoords) {
-                pickupTxt = `منطقة محددة (${appState.currentPickupCoords.lat.toFixed(4)}, ${appState.currentPickupCoords.lng.toFixed(4)})`;
+                pickupTxt = `(${appState.currentPickupCoords.lat.toFixed(4)}, ${appState.currentPickupCoords.lng.toFixed(4)})`;
             }
 
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
                 passPhone: appState.currentUser.phone,
                 passName: appState.currentUser.fname || 'راكب',
@@ -592,6 +586,7 @@
         window.cancelRideRequest = async () => {
             if(!auth.currentUser) return;
             if(appState.activeRideId) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', appState.activeRideId), { status: 'cancelled' });
                 appState.activeRideId = null;
             }
@@ -602,7 +597,6 @@
         const handleRidesLiveUpdate = () => {
             if(appState.role === 'driver') {
                 const now = Date.now();
-                // Local cleanup display (don't write to DB here to avoid spam)
                 const pendingRides = cloudRides.filter(r => r.status === 'pending' && (now - r.timestamp < 900000));
                 
                 const list = document.getElementById('driver-rides-list');
@@ -624,8 +618,8 @@
                         <div class="flex justify-between items-start mb-3">
                             <div>
                                 <h4 class="font-black text-dark text-lg text-brand"><i class="fas fa-user-circle"></i> ${r.passName}</h4>
-                                <p class="text-sm font-bold text-gray-500 mt-1"><i class="fas fa-map-marker-alt text-brand"></i> من: ${r.pickup||'موقع الخريطة'}</p>
-                                <p class="text-sm font-bold text-gray-500"><i class="fas fa-flag-checkered text-red-500"></i> إلى: ${r.dest}</p>
+                                <p class="text-sm font-bold text-gray-500 mt-1"><i class="fas fa-map-marker-alt text-brand"></i> الموقع: ${r.pickup}</p>
+                                <p class="text-sm font-bold text-gray-500"><i class="fas fa-flag-checkered text-red-500"></i> الوجهة: ${r.dest}</p>
                             </div>
                             <span class="bg-red-50 text-red-500 px-2 py-1 rounded text-xs font-bold animate-pulse">جديد حي</span>
                         </div>
@@ -659,6 +653,7 @@
             if(!auth.currentUser) return;
             const r = cloudRides.find(x => x.id === rideId);
             if(r && r.status === 'pending') {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
                     status: 'accepted',
                     driverPhone: appState.currentUser.phone,
@@ -714,6 +709,7 @@
         window.finishRide = async () => {
             if(!auth.currentUser) return;
             if(appState.activeRideId) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', appState.activeRideId), { status: 'completed' });
                 appState.activeRideId = null;
                 lastActiveStatus = '';
@@ -783,27 +779,48 @@
             } else if(tab === 'ai') {
                 let totalRev = cloudRides.filter(r => r.status === 'completed').reduce((acc, r) => acc + r.price, 0);
                 let activeRidesCount = cloudRides.filter(r => r.status === 'accepted' || r.status === 'pending').length;
-                let subMoney = cloudUsers.filter(u => u.status === 'approved').length * 2000; // Total money from subscriptions
+                let approvedDrivers = cloudUsers.filter(u => u.status === 'approved').length;
+                let subMoney = approvedDrivers * 2000; 
                 let driversCount = cloudUsers.filter(u=>u.type==='driver').length;
                 
                 content.innerHTML = `
                     <div class="bg-dark text-white p-6 rounded-2xl shadow-xl mb-6 relative overflow-hidden">
                         <i class="fas fa-robot absolute -left-4 -bottom-4 text-8xl text-white opacity-10"></i>
-                        <h3 class="font-black text-xl mb-2 flex items-center gap-2"><i class="fas fa-satellite text-brandLight animate-pulse"></i> AI المراقبة الحية (Radar)</h3>
-                        <p class="text-sm text-gray-400 mb-4">البيانات تُسحب مباشرة لحظة بلحظة من قاعدة البيانات:</p>
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div class="bg-white/10 p-3 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">أموال الاشتراكات (CCP)</p><p class="text-xl font-black text-brandLight" dir="ltr">${subMoney} DZD</p></div>
-                            <div class="bg-white/10 p-3 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">دوران الأموال (الرحلات)</p><p class="text-xl font-black text-green-400" dir="ltr">${totalRev} DZD</p></div>
-                            <div class="bg-white/10 p-3 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">سيارات على النظام</p><p class="text-xl font-black text-white" dir="ltr">${driversCount} 🚗</p></div>
-                            <div class="bg-white/10 p-3 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">رحلات جارية الآن</p><p class="text-xl font-black text-red-400" dir="ltr">${activeRidesCount} ⚡</p></div>
+                        <h3 class="font-black text-xl mb-4 flex items-center gap-2"><i class="fas fa-satellite text-brandLight animate-pulse"></i> AI المراقبة الحية (Radar)</h3>
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">أموال الحساب الجاري (CCP)</p><p class="text-2xl font-black text-brandLight" dir="ltr">${subMoney} DZD</p></div>
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">دوران الأموال (الرحلات)</p><p class="text-2xl font-black text-green-400" dir="ltr">${totalRev} DZD</p></div>
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">سيارات على النظام</p><p class="text-2xl font-black text-white" dir="ltr">${driversCount} 🚗</p></div>
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">رحلات جارية الآن</p><p class="text-2xl font-black text-red-400" dir="ltr">${activeRidesCount} ⚡</p></div>
                         </div>
                     </div>
 
                     <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm mb-4">
-                        <h4 class="font-bold text-dark mb-3 border-b pb-2"><i class="fas fa-map-marked-alt text-brand mr-2"></i> رادار مراقبة السيارات</h4>
+                        <h4 class="font-bold text-dark mb-4 border-b pb-2"><i class="fas fa-chart-pie text-brand mr-2"></i> إحصائيات السائقين</h4>
+                        <div class="relative h-48 w-full"><canvas id="aiChart"></canvas></div>
+                    </div>
+
+                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm mb-4">
+                        <h4 class="font-bold text-dark mb-3 border-b pb-2"><i class="fas fa-map-marked-alt text-brand mr-2"></i> رادار المراقبة</h4>
                         <div id="admin-live-map" class="admin-map-container bg-gray-100"></div>
                     </div>
                 `;
+
+                // Render Chart.js
+                adminCharts.forEach(c => c.destroy()); adminCharts = [];
+                setTimeout(() => {
+                    const ctx = document.getElementById('aiChart').getContext('2d');
+                    const trialCount = cloudUsers.filter(u=>u.status==='trial').length;
+                    const pendingCount = cloudUsers.filter(u=>u.status==='pending_approval').length;
+                    adminCharts.push(new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['مفعل (تم الدفع)', 'تجريبي', 'في الانتظار'],
+                            datasets: [{ data: [approvedDrivers, trialCount, pendingCount], backgroundColor: ['#10B981', '#3B82F6', '#F59E0B'], borderWidth: 0 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: {font: {family: 'Cairo'}} } } }
+                    }));
+                }, 100);
 
                 // Render Map in Admin
                 setTimeout(() => {
@@ -811,7 +828,6 @@
                     appState.adminMap = L.map('admin-live-map', { zoomControl: false }).setView([36.75, 3.04], 6);
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(appState.adminMap);
                     
-                    // Show simulated locations for drivers
                     cloudUsers.filter(u=>u.type==='driver').forEach((d, i) => {
                         let lat = 36.75 + (Math.random()*2 - 1); let lng = 3.04 + (Math.random()*2 - 1);
                         L.marker([lat, lng], { icon: L.divIcon({ className: 'admin-marker', html: `<div style="background:#1e293b; color:white; width:28px; height:28px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2px solid #00A3FF; font-size:12px; shadow: 0 4px 6px rgba(0,0,0,0.3);"><i class="fas fa-car"></i></div>`, iconSize: [28,28] }) }).addTo(appState.adminMap);
@@ -832,12 +848,14 @@
 
         window.saveApi = async () => {
             if(!auth.currentUser) return;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), { instanceId: document.getElementById('api-instance').value.trim(), token: document.getElementById('api-token').value.trim() });
             window.showToast('تم الحفظ في السحابة بنجاح!');
         };
 
         window.adminApproveDriver = async (docId) => {
             if(!auth.currentUser) return;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app-prod';
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', docId), { status: 'approved' });
             window.showToast('تم تفعيل السائق!');
             window.switchAdminTab('overview');
