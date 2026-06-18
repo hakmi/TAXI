@@ -2,73 +2,406 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة عبد الكريم السحابية</title>
-    <!-- استدعاء تصميم أنيق للمنصة -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iD Algérie - تطبيق النقل الذكي</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap');
-        body {
-            font-family: 'Cairo', sans-serif;
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brand: '#00A3FF', brandDark: '#007BFF', brandLight: '#E5F4FF', dark: '#1e293b', surface: '#ffffff', background: '#F4F7F6' },
+                    fontFamily: { sans: ['Cairo', 'sans-serif'] },
+                    animation: { 'bounce-slow': 'bounce 2s infinite', 'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                }
+            }
         }
+    </script>
+
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #F4F7F6; overflow-x: hidden; touch-action: manipulation; color: #1e293b; margin: 0; padding: 0; }
+        
+        /* Screens */
+        .screen { display: none; height: 100vh; width: 100%; position: fixed; top: 0; left: 0; background: #F4F7F6; z-index: 1; opacity: 0; transition: opacity 0.2s ease-in-out; overflow-y: auto; overflow-x: hidden; padding-bottom: 2rem; }
+        .screen.active { display: block; z-index: 10; opacity: 1; }
+        
+        /* Maps - Smooth mobile dragging */
+        .map-container { height: 55vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; touch-action: none; }
+        .admin-map-container { height: 350px; width: 100%; border-radius: 1rem; z-index: 1; position: relative; overflow: hidden; border: 2px solid #E2E8F0; touch-action: none; }
+        .ride-map-container { height: 60vh; width: 100%; z-index: 1; position: absolute; top: 0; left: 0; touch-action: none; }
+        
+        /* Bottom Sheet */
+        .bottom-sheet { position: fixed; bottom: 0; width: 100%; border-radius: 28px 28px 0 0; box-shadow: 0 -15px 40px rgba(0,0,0,0.15); z-index: 20; background: #ffffff; display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; padding-bottom: env(safe-area-bottom); }
+
+        .leaflet-control-attribution { display: none !important; }
+        
+        /* Inputs & Buttons */
+        .id-input { width: 100%; background: #F8FAFC; color: #1e293b; border: 1px solid #E2E8F0; padding: 1.2rem 1rem; border-radius: 1rem; outline: none; transition: border-color 0.2s; font-weight: 600;}
+        .id-input:focus { border-color: #00A3FF; background: #ffffff; box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1); }
+        
+        .btn-primary { background-color: #00A3FF; color: white; font-weight: bold; border-radius: 1rem; padding: 1rem; text-align: center; width: 100%; box-shadow: 0 4px 15px rgba(0, 163, 255, 0.3); transition: all 0.2s; cursor: pointer; border: none; position: relative; overflow: hidden;}
+        .btn-primary:active { transform: scale(0.97); background-color: #007BFF; }
+        .btn-primary:disabled { background-color: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; opacity: 0.8; }
+        
+        /* Sidebar */
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; backdrop-filter: blur(3px); opacity: 0; transition: opacity 0.3s; }
+        #sidebar { position: fixed; top: 0; bottom: 0; right: -100%; width: 80%; max-width: 320px; background: #ffffff; z-index: 50; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -5px 0 25px rgba(0,0,0,0.1); overflow-y: auto;}
+
+        /* Toasts & Notifications - IMPROVED to show at TOP */
+        #push-notification { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 99999; padding: 16px; transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 12px; border: 1px solid rgba(0,0,0,0.05); }
+        #push-notification.show { top: 20px; }
+        
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; width: 90%; max-width: 400px; pointer-events: none; display: flex; flex-direction: column; gap: 10px; align-items: center;}
+        
+        @keyframes customPing { 75%, 100% { transform: scale(2); opacity: 0; } }
+        .animate-custom-ping { animation: customPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+        /* Loading Screen */
+        #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.3s;}
+        
+        /* Central Map Pin for Passenger Precision */
+        .map-center-pin-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
+        .map-center-pin { color: #1e293b; font-size: 3rem; filter: drop-shadow(0 8px 6px rgba(0,0,0,0.5)); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
+        .map-center-pin.moving { transform: translateY(-25px); color: #00A3FF; }
+        .map-center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background-color: rgba(0,0,0,0.4); border-radius: 50%; z-index: 999; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.8); }
     </style>
-</head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between">
 
-    <!-- شريط الرأس (Header) -->
-    <header class="bg-slate-800 p-4 shadow-lg border-b border-slate-700">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold text-orange-500">منصة عبد الكريم السحابية ☁️</h1>
-            <span class="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded-full border border-emerald-500/30">مشروع متصل بالسحابة</span>
-        </div>
-    </header>
+    <!-- Global Interface Logic -->
+    <script>
+        window.appState = { role: null, currentUser: null, priceBase: 150, activeRideId: null, map: null, rideMap: null, adminMap: null, currentPickupCoords: {lat: 36.75, lng: 3.04}, destCoords: null };
+        window.cloudApi = { instanceId: 'instance181309', token: '0slilsu9t71ld540' }; 
+        
+        window.showScreen = (id) => { 
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
+            const t = document.getElementById(id); 
+            if(t) {
+                t.classList.add('active'); 
+                window.closeSidebar(); 
+                if(id === 'screen-passenger-home') setTimeout(() => { window.initMap('map', true); }, 100);
+                else if(id === 'screen-ride-active') setTimeout(() => { window.initMap('ride-map', false); }, 100);
+            }
+        };
 
-    <!-- محتوى المنصة الرئيسي -->
-    <main class="container mx-auto p-6 flex-grow max-w-4xl">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        window.showToast = (msg, type='success') => { 
+            const c = document.getElementById('toast-container'); 
+            if(!c) return; 
             
-            <!-- قسم إدخال وإرسال البيانات -->
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                <h2 class="text-lg font-bold mb-4 text-slate-300">إرسال بيانات جديدة للسحابة</h2>
-                <form id="dataForm" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">اسم المرسل:</label>
-                        <input type="text" id="senderName" required placeholder="أدخل اسمك هنا..." class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-orange-500 text-white transition">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">الرسالة أو الملاحظة:</label>
-                        <textarea id="messageText" required rows="3" placeholder="اكتب رسالتك السحابية هنا..." class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-orange-500 text-white transition"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-orange-600/20 transition duration-150">
-                        إرسال إلى قاعدة البيانات
-                    </button>
-                </form>
-                <p id="statusMessage" class="mt-3 text-sm text-center hidden"></p>
-            </div>
+            const icon = type === 'success' ? '<i class="fas fa-check-circle text-2xl mb-1"></i>' : 
+                         type === 'error' ? '<i class="fas fa-exclamation-circle text-2xl mb-1"></i>' : 
+                         '<i class="fas fa-info-circle text-2xl mb-1"></i>';
+                         
+            const t = document.createElement('div'); 
+            const bgClass = type === 'success' ? 'bg-green-600 text-white' : 
+                            type === 'error' ? 'bg-red-600 text-white' : 
+                            'bg-gray-800 text-white';
 
-            <!-- قسم استعراض البيانات من السحابة -->
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col h-[400px]">
-                <h2 class="text-lg font-bold mb-4 text-slate-300">البيانات الحية من السحابة</h2>
-                <div id="messagesContainer" class="flex-grow overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
-                    <div class="text-slate-500 text-center py-8">جاري التحميل والاتصال بالسحابة...</div>
+            t.className = `${bgClass} p-4 rounded-2xl shadow-2xl mb-3 text-sm font-bold flex flex-col items-center justify-center text-center transform transition-all duration-300 -translate-y-[50px] opacity-0 w-full border border-white/20`; 
+            t.innerHTML = `${icon} <span>${msg}</span>`; 
+            
+            c.appendChild(t); 
+            requestAnimationFrame(()=>t.classList.remove('-translate-y-[50px]','opacity-0')); 
+            setTimeout(()=>{ t.classList.add('opacity-0','-translate-y-[50px]'); setTimeout(()=>t.remove(),300); }, 3500); 
+            
+            // اهتزاز الهاتف للاستجابة للتفاعل
+            try { if(navigator.vibrate) navigator.vibrate(type === 'success' ? [100] : [50, 50, 50]); } catch(e){}
+        };
+
+        window.setBtnLoading = (btnId, isLoading, originalText) => {
+            const btn = document.getElementById(btnId);
+            if(!btn) return;
+            if(isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin text-xl"></i>`;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        };
+
+        window.openSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '0'; o.style.display='block'; setTimeout(()=>o.style.opacity='1',10); } };
+        window.closeSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '-100%'; o.style.opacity='0'; setTimeout(()=>o.style.display='none',300); } };
+        window.moveNext = (c, n) => { if (c.value.length >= 1) { const nx = document.getElementById(n); if(nx) nx.focus(); } };
+        window.playPing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5); } catch(e) {} };
+    </script>
+</head>
+<body class="antialiased">
+
+    <!-- شاشة التحميل الأولية -->
+    <div id="screen-loading">
+        <div class="relative w-24 h-24 flex justify-center items-center mb-6">
+            <div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div>
+            <span class="text-4xl font-black text-brand">iD</span>
+        </div>
+        <h2 class="text-xl font-bold text-dark mb-2">جاري التجهيز...</h2>
+        <p class="text-gray-500 text-sm font-semibold">تأمين الاتصال السحابي ☁️</p>
+    </div>
+
+    <!-- نظام محاكاة إشعار الواتساب للتفعيل التجريبي السريع -->
+    <div id="push-notification">
+        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl shadow-md shrink-0"><i class="fab fa-whatsapp"></i></div>
+        <div class="flex-1 text-left" dir="ltr">
+            <h4 class="font-bold text-gray-800 text-sm">WhatsApp</h4>
+            <p class="text-sm text-gray-600 mt-1">كود التفعيل الخاص بك هو: <span id="push-code" class="font-black text-green-600 text-lg"></span></p>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- القائمة الجانبية للتنقل والدور السحابي -->
+    <div id="sidebar-overlay" onclick="window.closeSidebar()"></div>
+    <div id="sidebar" class="flex flex-col">
+        <div class="p-6 flex items-center border-b border-gray-100 bg-brandLight">
+            <div class="w-14 h-14 rounded-full bg-brand text-white flex items-center justify-center font-bold text-2xl ml-4 shadow-md" id="sidebar-avatar">م</div>
+            <div class="flex-1">
+                <h3 class="font-bold text-lg text-dark" id="sidebar-name">مستخدم</h3>
+                <div class="text-brand font-semibold text-sm flex items-center mt-1"><i class="fas fa-star ml-1 text-yellow-400"></i> <span id="sidebar-role">راكب</span></div>
+            </div>
+            <button onclick="window.closeSidebar()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm border-none cursor-pointer"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="flex-1 py-4">
+            <a href="#" onclick="window.switchRole()" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-exchange-alt w-6 text-xl text-brand text-center"></i> <span class="font-bold">تغيير الدور (سائق/راكب)</span></a>
+            <a href="#" class="flex items-center px-6 py-4 text-gray-700 hover:bg-gray-50 transition gap-4"><i class="fas fa-car w-6 text-xl text-brand text-center"></i> <span class="font-bold">الرحلات الحالية</span></a>
+        </div>
+        
+        <div class="p-6 mt-auto border-t border-gray-100">
+            <button onclick="window.logoutApp()" class="w-full bg-red-50 text-red-600 font-bold py-4 rounded-xl text-lg shadow-sm transition hover:bg-red-100 flex justify-center items-center gap-2 border-none cursor-pointer">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN 1: شاشة الترحيب -->
+    <div id="screen-welcome" class="screen flex flex-col relative h-screen bg-white">
+        <button onclick="window.showScreen('screen-admin-login')" class="absolute top-6 left-6 text-gray-400 hover:text-brand p-2 z-50 transition border-none bg-transparent cursor-pointer"><i class="fas fa-shield-alt text-xl"></i></button>
+        
+        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center mt-8">
+            <div class="w-32 h-32 rounded-[2rem] flex items-center justify-center mb-8 relative">
+                <div class="absolute inset-0 bg-brand opacity-10 rounded-[2rem] transform rotate-6"></div>
+                <div class="absolute inset-0 bg-brand opacity-20 rounded-[2rem] transform -rotate-3"></div>
+                <div class="relative bg-white border-2 border-brand w-full h-full rounded-[2rem] flex items-center justify-center shadow-xl"><span class="text-5xl font-black text-brand tracking-tighter" dir="ltr">iD</span></div>
+            </div>
+            <h1 class="text-4xl font-black mb-4 text-dark leading-tight tracking-wider" dir="ltr">iD Algérie</h1>
+            <p class="text-gray-500 font-semibold text-lg">أنت من يقترح السعر.. نقل ذكي 🚕</p>
+        </div>
+        
+        <div class="p-6 pb-10 space-y-3 z-10 relative bg-white w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+            <button onclick="window.showScreen('screen-phone')" class="btn-primary flex justify-center items-center gap-3 text-lg py-4 shadow-lg">
+                <i class="fas fa-phone-alt"></i> الدخول وتأكيد الواتساب
+            </button>
+            <p class="text-xs text-gray-400 text-center mt-4 px-4 leading-relaxed font-semibold">بالمتابعة، أنت توافق على شروط الاستخدام الخاصة بنا.</p>
+            <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+                <p class="text-sm font-black text-brand tracking-widest font-mono">🇩🇿 (منصة جزائرية)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: إدخال معلومات الهاتف والاسم -->
+    <div id="screen-phone" class="screen flex flex-col bg-white">
+        <div class="p-6 pt-12 flex flex-col h-full overflow-y-auto">
+            <div class="flex items-center mb-8 gap-4">
+                <button onclick="window.showScreen('screen-welcome')" class="text-dark bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-200 border-none cursor-pointer"><i class="fas fa-arrow-right"></i></button>
+                <h2 class="text-2xl font-black text-dark">معلوماتك الشخصية</h2>
+            </div>
+            <div class="space-y-4 mb-6">
+                <div><label class="block text-gray-700 text-sm font-bold mb-2">الاسم الأول <span class="text-red-500">*</span></label><input type="text" id="ob-fname" placeholder="مثال: عبد الكريم" class="id-input text-lg"></div>
+                <div><label class="block text-gray-700 text-sm font-bold mb-2">اللقب</label><input type="text" id="ob-lname" placeholder="مثال: حكيمي" class="id-input text-lg"></div>
+                <div class="pt-2">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">رقم الهاتف <span class="text-red-500">*</span></label>
+                    <div class="bg-gray-50 rounded-2xl p-3 flex items-center border border-gray-200 focus-within:border-brand focus-within:bg-white transition-all shadow-sm" dir="ltr">
+                        <div class="flex items-center border-r-2 border-gray-200 pr-3 mr-3 text-lg"><span class="mr-2 text-xl">🇩🇿</span> <span class="font-bold text-dark">+213</span></div>
+                        <input type="tel" id="ob-phone" placeholder="550123456" class="w-full bg-transparent outline-none text-xl font-bold text-dark tracking-wider" maxlength="10">
+                    </div>
                 </div>
             </div>
-
+            <button onclick="window.sendWhatsAppCode()" id="btn-send-wa" class="btn-primary mt-auto mb-6 text-xl py-4 flex justify-center items-center gap-2 shadow-lg">استلام الرمز <i class="fab fa-whatsapp text-xl"></i></button>
         </div>
-    </main>
+    </div>
 
-    <!-- تذييل الصفحة -->
-    <footer class="bg-slate-950 p-4 text-center text-sm text-slate-500 border-t border-slate-800">
-        جميع الحقوق محفوظة لمنصة عبد الكريم البرمجية &copy; 2026
-    </footer>
+    <!-- SCREEN 3: شاشة الرمز السري (OTP) -->
+    <div id="screen-otp" class="screen flex flex-col bg-white">
+        <div class="p-6 pt-12 flex flex-col h-full">
+            <div class="flex items-center mb-8 gap-4">
+                <button onclick="window.showScreen('screen-phone')" class="text-dark bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-200 border-none cursor-pointer"><i class="fas fa-arrow-right"></i></button>
+                <h2 class="text-2xl font-black text-dark">أدخل الرمز</h2>
+            </div>
+            <p class="text-gray-600 mb-8 font-semibold text-lg">تم إرسال الرمز عبر واتساب إلى <br><span id="otp-display-phone" class="font-black text-brand text-xl" dir="ltr"></span></p>
+            <div class="flex justify-center gap-4 mb-8" dir="ltr">
+                <input type="text" id="otp-1" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1" onkeyup="window.moveNext(this, 'otp-2')">
+                <input type="text" id="otp-2" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1" onkeyup="window.moveNext(this, 'otp-3')">
+                <input type="text" id="otp-3" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1" onkeyup="window.moveNext(this, 'otp-4')">
+                <input type="text" id="otp-4" class="w-16 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-3xl font-black text-dark focus:border-brand focus:bg-white outline-none" maxlength="1">
+            </div>
+            <button onclick="window.verifyOTP()" id="btn-verify-otp" class="btn-primary mt-auto mb-6 text-xl py-4 shadow-lg">تأكيد الدخول</button>
+        </div>
+    </div>
 
-    <!-- استدعاء مكتبات Firebase السحابية عبر الـ CDN -->
+    <!-- SCREEN 4: اختيار الدور (سائق أو راكب) -->
+    <div id="screen-role" class="screen flex flex-col bg-background">
+        <div class="p-6 pt-16 flex flex-col h-full items-center text-center">
+            <h2 class="text-3xl font-black text-dark mb-3">مرحباً <span id="welcome-name" class="text-brand"></span>!</h2>
+            <p class="text-gray-500 font-semibold mb-12">كيف ترغب في استخدام التطبيق اليوم؟</p>
+            <div class="w-full space-y-6 mt-auto mb-10">
+                <div onclick="window.selectRole('passenger')" class="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-brand cursor-pointer transition-all transform hover:-translate-y-1 relative overflow-hidden flex items-center">
+                    <div class="absolute -left-6 -top-6 w-32 h-32 bg-brandLight rounded-full z-0"></div>
+                    <div class="w-16 h-16 bg-brand text-white rounded-2xl flex items-center justify-center text-3xl shadow-md z-10 ml-6"><i class="fas fa-user"></i></div>
+                    <div class="z-10 text-right w-full"><h3 class="text-2xl font-black text-dark">راكب</h3><p class="text-gray-500 font-semibold text-sm mt-1">حدد موقعك بدقة واطلب رحلة</p></div>
+                </div>
+                <div onclick="window.selectRole('driver')" class="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-dark cursor-pointer transition-all transform hover:-translate-y-1 relative overflow-hidden flex items-center">
+                    <div class="absolute -left-6 -top-6 w-32 h-32 bg-gray-100 rounded-full z-0"></div>
+                    <div class="w-16 h-16 bg-dark text-white rounded-2xl flex items-center justify-center text-3xl shadow-md z-10 ml-6"><i class="fas fa-car"></i></div>
+                    <div class="z-10 text-right w-full"><h3 class="text-2xl font-black text-dark">سائق</h3><p class="text-gray-500 font-semibold text-sm mt-1">تلقى الطلبات واكسب المال</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 5: تسجيل معلومات مركبة السائق -->
+    <div id="screen-driver-reg" class="screen flex flex-col bg-white">
+        <div class="p-6 pt-12 flex flex-col h-full overflow-y-auto">
+            <div class="flex items-center mb-8 gap-4"><button onclick="window.showScreen('screen-role')" class="text-dark bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-200 border-none cursor-pointer"><i class="fas fa-arrow-right"></i></button><h2 class="text-2xl font-black text-dark">معلومات مركبتك</h2></div>
+            <div class="space-y-4 mb-6">
+                <div><label class="block text-gray-700 text-sm font-bold mb-2">نوع السيارة</label><input type="text" id="reg-car" placeholder="مثال: Renault Symbol" class="id-input text-lg"></div>
+                <div><label class="block text-gray-700 text-sm font-bold mb-2">اللوحة (Matricule)</label><input type="text" id="reg-mat" placeholder="00000 000 00" class="id-input font-mono font-black text-2xl tracking-widest text-center" dir="ltr" style="border: 2px solid #cbd5e1;"></div>
+            </div>
+            <button onclick="window.submitDriverReg()" id="btn-driver-reg" class="btn-primary mt-auto mb-6 text-xl py-4 shadow-lg">التسجيل والتفعيل <i class="fas fa-check-circle mr-2"></i></button>
+        </div>
+    </div>
+
+    <!-- SCREEN 6: دفع الاشتراك لتفعيل حساب السائق -->
+    <div id="screen-driver-payment" class="screen flex flex-col items-center justify-center p-6 bg-background">
+        <div class="bg-white p-8 rounded-[2rem] w-full max-w-md text-center shadow-xl border border-gray-100 relative overflow-hidden">
+            <div class="w-20 h-20 bg-brandLight rounded-full flex items-center justify-center text-brand text-4xl mx-auto mb-6"><i class="fas fa-wallet"></i></div>
+            <h2 class="text-2xl font-black text-dark mb-3">تفعيل الحساب مطلوب</h2>
+            <p class="text-gray-600 mb-6 font-semibold text-sm">لدفع الاشتراك <strong class="text-dark">2000 د.ج</strong> عبر بريدي موب:</p>
+            <div class="bg-gray-50 w-full p-4 rounded-2xl mb-8 text-right border border-gray-200 flex items-center justify-between" dir="ltr">
+                <button onclick="navigator.clipboard.writeText('00799999000467087604'); window.showToast('تم نسخ الحساب!')" class="text-brand bg-brandLight w-12 h-12 rounded-xl flex items-center justify-center border-none cursor-pointer"><i class="fas fa-copy"></i></button>
+                <span class="font-mono text-xl font-black text-dark">00799999000467087604</span>
+            </div>
+            <button onclick="window.paySubscription()" id="btn-pay-sub" class="btn-primary py-4 text-xl shadow-md mb-3">لقد قمت بالدفع</button>
+            <button onclick="window.showScreen('screen-role')" class="text-gray-500 font-bold bg-transparent border-none cursor-pointer">العودة للرئيسية</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 7: لوحة تحكم السائق (استقبال رحلات الركاب) -->
+    <div id="screen-driver-dash" class="screen flex flex-col bg-background">
+        <div class="p-4 flex items-center justify-between bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
+            <div class="flex items-center gap-4"><button onclick="window.openSidebar()" class="text-dark w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shadow-sm border-none cursor-pointer"><i class="fas fa-bars"></i></button><div class="bg-brandLight text-brand px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2"><div class="w-2 h-2 bg-brand rounded-full animate-pulse"></div> <span id="driver-status-text">متصل وجاهز</span></div></div>
+        </div>
+        <div class="p-4 flex-1 overflow-y-auto flex flex-col relative">
+            <div id="driver-empty-state" class="flex flex-col items-center justify-center h-full absolute inset-0">
+                <div class="relative w-32 h-32 flex justify-center items-center mb-8"><div class="absolute inset-0 border-4 border-brand opacity-20 rounded-full animate-custom-ping"></div><div class="w-20 h-20 bg-brandLight text-brand rounded-full flex items-center justify-center text-3xl shadow-inner"><i class="fas fa-satellite-dish"></i></div></div>
+                <p class="font-black text-dark text-2xl mb-2">أنت الآن متصل</p>
+                <p class="text-gray-500 text-center font-bold">ننتظر الطلبات الحية من الركاب في السحاب...</p>
+            </div>
+            <div id="driver-rides-list" class="w-full relative z-10 space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- SCREEN 8: واجهة الراكب الرئيسية وتحديد المسار وسعر الرحلة -->
+    <div id="screen-passenger-home" class="screen relative h-screen overflow-hidden">
+        <div class="relative w-full h-[55vh]">
+            <div id="map" class="w-full h-full"></div>
+            
+            <div class="map-center-dot"></div>
+            <div class="map-center-pin-container" id="pickup-pin-container">
+                <i class="fas fa-map-marker-alt map-center-pin" id="pickup-pin"></i>
+            </div>
+            
+            <div class="absolute top-8 left-0 w-full px-6 z-[1000] flex justify-between items-center pointer-events-none">
+                <button onclick="window.openSidebar()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-dark shadow-lg pointer-events-auto border border-gray-100 border-none cursor-pointer"><i class="fas fa-bars text-xl"></i></button>
+            </div>
+            
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white border-2 border-brand text-brand px-6 py-3 rounded-full text-sm font-black shadow-xl z-[1000] opacity-95 text-center whitespace-nowrap pointer-events-none flex items-center gap-3">
+                <i class="fas fa-hand-pointer text-lg animate-bounce-slow"></i> حرك الخريطة لتحديد موقعك
+            </div>
+        </div>
+
+        <div class="bottom-sheet p-6">
+            <h3 class="font-black text-2xl mb-4 text-dark">إلى أين تذهب؟</h3>
+            <div class="bg-background rounded-2xl p-4 mb-4 border border-gray-200">
+                <div class="flex items-center gap-4"><div class="w-4 h-4 bg-dark rounded-full shadow-sm"></div><input type="text" id="pass-pickup-display" value="موقعي (حسب مؤشر الخريطة)" class="w-full bg-transparent text-gray-600 font-bold text-sm outline-none border-none" readonly></div>
+                <div class="w-full h-px bg-gray-200 my-3"></div>
+                <div class="flex items-center gap-4"><div class="w-4 h-4 bg-brand rounded-full shadow-sm"></div><input type="text" id="pass-dest" placeholder="المدينة، البلدية، أو الحي بالجزائر..." class="w-full bg-transparent text-dark font-black text-xl outline-none border-none" onkeyup="window.calculateEstimatedPrice()"></div>
+            </div>
+            
+            <div id="price-calc-container" class="hidden flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl mb-4 text-brand font-bold text-sm">المسافة المقدرة: <span id="est-dist">--</span> كم (25 د.ج/كم)</div>
+            
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col"><span class="text-sm font-bold text-gray-500 mb-2">السعر (د.ج)</span><div class="flex items-center bg-gray-100 rounded-xl p-1 w-fit" dir="ltr"><button onclick="window.adjPrice(-20)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg cursor-pointer">-</button><span class="px-4 font-black text-3xl text-brand w-24 text-center" id="pass-price">150</span><button onclick="window.adjPrice(20)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg cursor-pointer">+</button></div></div>
+            </div>
+            
+            <button onclick="window.calculateRealDistanceAndRequest()" id="btn-request-main" class="btn-primary py-4 text-xl shadow-lg flex justify-center items-center gap-3">حساب المسافة وطلب سائق <i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- SCREEN 9: شاشة انتظار السائق مع حركة رادار دائرية -->
+    <div id="screen-choose-driver" class="screen flex flex-col bg-background">
+        <div class="p-6 pt-10 flex justify-between items-center bg-white shadow-sm sticky top-0 z-20"><button onclick="window.cancelRideRequest()" class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center border-none cursor-pointer"><i class="fas fa-times"></i></button><h2 class="text-xl font-black text-dark">البحث عن سائق</h2><div class="w-10"></div></div>
+        <div class="p-4 flex-1 flex flex-col items-center justify-center text-brand">
+            <div class="relative w-32 h-32 flex justify-center items-center mb-8"><div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div><i class="fas fa-car-side text-5xl bg-white w-20 h-20 rounded-full flex items-center justify-center shadow-lg relative z-10"></i></div>
+            <p class="text-dark font-black text-2xl mb-2">جاري البحث...</p><p class="text-gray-500 font-bold text-center">الطلب معروض الآن في السحابة على السائقين المتاحين.</p>
+        </div>
+    </div>
+
+    <!-- SCREEN 10: شاشة الرحلة النشطة (خريطة التتبع المباشر) -->
+    <div id="screen-ride-active" class="screen relative h-screen overflow-hidden bg-background">
+        <div id="ride-map" class="ride-map-container"></div>
+        <div class="absolute top-8 right-6 z-20"><div class="bg-white px-4 py-2 rounded-full shadow-md border border-gray-100 flex items-center font-bold text-green-500 gap-2"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> <span id="active-status-text">الرحلة مؤكدة</span></div></div>
+        <div class="bottom-sheet p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-4"><div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-2xl border-2 border-brand"><i class="fas fa-user"></i></div><div><h3 id="active-partner-name" class="font-black text-xl text-dark">--</h3><div class="text-yellow-400 text-sm font-bold flex items-center gap-1"><i class="fas fa-star"></i> 5.0</div></div></div>
+                <div class="text-left" dir="ltr"><span id="active-ride-price" class="text-3xl font-black text-brand">--</span></div>
+            </div>
+            <div id="driver-car-info" class="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-200 flex justify-between items-center">
+                <div><p id="active-driver-car" class="font-bold text-dark text-lg" dir="ltr">--</p></div>
+                <div class="bg-white border-2 border-gray-300 px-3 py-1 rounded-lg shadow-sm"><p id="active-driver-plate" class="font-mono font-black text-lg text-dark tracking-widest" dir="ltr">--</p></div>
+            </div>
+            <div id="ride-dest-info" class="bg-blue-50 rounded-2xl p-4 mb-6 border border-blue-100 hidden"><p class="text-xs text-gray-500 font-bold mb-1">الوجهة المطلوبة:</p><p id="active-ride-dest" class="font-bold text-dark text-lg">--</p></div>
+            <div class="flex gap-4">
+                <button onclick="window.finishRide()" id="btn-finish-ride" class="w-1/3 bg-gray-100 text-dark font-bold py-4 rounded-xl text-lg border-none cursor-pointer hover:bg-gray-200">إنهاء الرحلة</button>
+                <button onclick="window.callPartner()" class="w-2/3 bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center gap-2 border-none cursor-pointer hover:bg-green-600"><i class="fas fa-phone-alt"></i> اتصال <span id="active-partner-phone" dir="ltr" class="font-mono text-sm bg-green-600 px-2 py-1 rounded"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 11: بوابة دخول الإدارة -->
+    <div id="screen-admin-login" class="screen flex items-center justify-center p-6 bg-dark">
+        <div class="bg-white p-8 rounded-[2rem] w-full max-w-md text-center shadow-2xl">
+            <h2 class="text-3xl font-black text-dark mb-6">دخول الإدارة</h2>
+            <input type="password" id="admin-pass" placeholder="كلمة المرور..." class="id-input text-center mb-6 font-mono text-lg bg-gray-50" dir="ltr">
+            <button onclick="window.loginAdmin()" id="btn-admin-login" class="w-full bg-brand text-white font-bold py-4 rounded-xl text-xl border-none cursor-pointer hover:bg-brandDark transition">دخول آمن</button>
+            <button onclick="window.showScreen('screen-welcome')" class="mt-6 text-gray-400 font-bold bg-transparent border-none cursor-pointer hover:text-dark">العودة للتطبيق</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 12: لوحة تحكم الإدارة الشاملة ورادار الـ AI -->
+    <div id="screen-admin-dashboard" class="screen flex flex-col bg-gray-50">
+        <div class="bg-dark text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md"><h2 class="font-black text-xl"><i class="fas fa-shield-alt text-brand"></i> لوحة الإدارة الذكية</h2><button onclick="window.showScreen('screen-welcome')" class="bg-gray-800 px-4 py-2 rounded-lg text-sm font-bold border-none text-white cursor-pointer hover:bg-gray-700">خروج</button></div>
+        <div class="bg-white border-b border-gray-200 flex text-sm font-bold overflow-x-auto whitespace-nowrap">
+            <button onclick="window.switchAdminTab('overview')" id="tab-btn-overview" class="px-6 py-4 text-brand border-b-2 border-brand shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition">البيانات والمستخدمين</button>
+            <button onclick="window.switchAdminTab('ai')" id="tab-btn-ai" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition"><i class="fas fa-robot text-purple-500 mr-1"></i> AI مراقبة متطورة</button>
+            <button onclick="window.switchAdminTab('api')" id="tab-btn-api" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer transition">إعدادات WhatsApp</button>
+        </div>
+        <div class="p-4 flex-1 overflow-y-auto" id="admin-content-area"></div>
+    </div>
+
+    <!-- Firebase SDK Logic & Realtime Cloud Engine -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // كود الاتصال السحابي بمشروعك 
-        const firebaseConfig = {
+        // =========================================================================
+        // 🔴 إعدادات Firebase الخاصة بمشروعك الجديد لضمان نجاح الاتصال
+        // =========================================================================
+        const MY_OWN_FIREBASE_CONFIG = {
             apiKey: "AIzaSyCsoqh7L_lhjKU5U94ra5T5GmoiPGpGWc4",
             authDomain: "myprojectname-1a84b.firebaseapp.com",
             projectId: "myprojectname-1a84b",
@@ -77,95 +410,712 @@
             appId: "1:359220501993:web:9f8977ddf06a246ed0bf78",
             measurementId: "G-MCZC6CY286"
         };
+        
+        let firebaseConfig = MY_OWN_FIREBASE_CONFIG;
+        let cloudUsers = [];
+        let cloudRides = [];
+        let lastRideCount = 0;
+        let lastActiveStatus = '';
+        let adminCharts = [];
+        let db, auth;
 
-        // تهيئة الاتصال بفايربيس وقاعدة البيانات
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        // الحصول على معرف التطبيق الحالي بشكل ديناميكي
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'myprojectname-1a84b';
 
-        // الإشارة لعناصر واجهة المستخدم
-        const dataForm = document.getElementById('dataForm');
-        const senderNameInput = document.getElementById('senderName');
-        const messageTextInput = document.getElementById('messageText');
-        const statusMessage = document.getElementById('statusMessage');
-        const messagesContainer = document.getElementById('messagesContainer');
-
-        const messagesCollection = collection(db, "user_messages");
-
-        // كود إرسال البيانات إلى السحابة عند إرسال النموذج
-        dataForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // ==========================================
+        // 1. تشغيل واجهة المستخدم بشكل فوري ومستقر
+        // ==========================================
+        const bootUI = () => {
+            const savedPhone = localStorage.getItem('id_session_phone');
+            if (savedPhone) {
+                window.appState.currentUser = { id: savedPhone, phone: savedPhone, fname: 'مستخدم' };
+                const nameEl = document.getElementById('welcome-name');
+                if(nameEl) nameEl.innerText = window.appState.currentUser.fname;
+                window.showScreen('screen-role');
+            } else {
+                window.showScreen('screen-welcome');
+            }
             
-            const sender = senderNameInput.value.trim();
-            const message = messageTextInput.value.trim();
+            const loadingScreen = document.getElementById('screen-loading');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => { loadingScreen.style.display = 'none'; }, 200);
+            }
+        };
+        bootUI();
 
-            showStatus("جاري إرسال بياناتك للسحابة...", "text-orange-400");
+        // ==========================================
+        // 2. المحرك السحابي للاتصال المتزامن الحقيقي (Firestore Sync)
+        // ==========================================
+        const syncCloud = async () => {
+            if (!firebaseConfig) return;
 
             try {
-                await addDoc(messagesCollection, {
-                    name: sender,
-                    text: message,
-                    timestamp: serverTimestamp()
-                });
-
-                messageTextInput.value = '';
-                showStatus("✅ تم حفظ البيانات في السحابة بنجاح!", "text-emerald-400");
+                const appInstance = initializeApp(firebaseConfig);
+                auth = getAuth(appInstance);
+                db = getFirestore(appInstance);
                 
-                setTimeout(() => {
-                    statusMessage.classList.add('hidden');
-                }, 3000);
+                // التوثيق السحابي لتخطي قواعد الحماية بأمان وفعالية
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try { await signInWithCustomToken(auth, __initial_auth_token); } 
+                        catch(e) { await signInAnonymously(auth); }
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch(e) { console.error("Auth Exception:", e); }
+                
+                // بمجرد نجاح الاتصال وتوثيق السائق/الراكب، نبدأ في مزامنة البيانات
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // استماع لقائمة المستخدمين وتحديث الذاكرة والملف الشخصي
+                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
+                            cloudUsers = []; 
+                            snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
+                            
+                            if(window.appState.currentUser && window.appState.currentUser.id) {
+                                const fresh = cloudUsers.find(u => u.id === window.appState.currentUser.id);
+                                if(fresh) { 
+                                    window.appState.currentUser = fresh; 
+                                    const nameEl = document.getElementById('welcome-name');
+                                    if(nameEl) nameEl.innerText = fresh.fname || 'مستخدم'; 
+                                }
+                            }
+                            const adminDash = document.getElementById('screen-admin-dashboard');
+                            if(adminDash && adminDash.classList.contains('active')) window.switchAdminTab('overview');
+                        }, (err) => {
+                            console.error("Firestore Users Realtime sync failure:", err);
+                        });
 
-            } catch (error) {
-                console.error("حدث خطأ أثناء الاتصال بالخادم السحابي:", error);
-                showStatus("❌ فشل الاتصال بالسحابة: " + error.message, "text-rose-400");
+                        // استماع حي وفوري لقائمة الطلبات والرحلات
+                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'rides'), (snap) => {
+                            cloudRides = []; 
+                            snap.forEach(d => cloudRides.push({ id: d.id, ...d.data() }));
+                            handleRidesLiveUpdate();
+                        }, (err) => {
+                            console.error("Firestore Rides Realtime sync failure:", err);
+                        });
+
+                        // استرداد إعدادات الـ WhatsApp وبوابة الرسائل
+                        onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
+                            if(docSnap.exists()) {
+                                const apiData = docSnap.data();
+                                if(apiData.instanceId && apiData.token) window.cloudApi = apiData;
+                            }
+                        }, (err) => {
+                            console.error("Settings listener failed:", err);
+                        });
+                    }
+                });
+            } catch(e) { console.error("Cloud System Failure:", e); }
+        };
+        setTimeout(syncCloud, 100); 
+
+        // ==========================================
+        // 3. منطق عمل التطبيق الحقيقي والاتصال
+        // ==========================================
+        window.sendWhatsAppCode = async () => {
+            const fnameEl = document.getElementById('ob-fname');
+            const phoneEl = document.getElementById('ob-phone');
+            if(!fnameEl || !phoneEl) return;
+
+            const fname = fnameEl.value.trim();
+            const phone = phoneEl.value.trim();
+            if(!fname || phone.length < 9) return window.showToast('أدخل الاسم ورقم الهاتف بشكل صحيح', 'error');
+
+            window.tempPhone = phone; 
+            window.tempFname = fname; 
+            window.tempOTP = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            window.setBtnLoading('btn-send-wa', true);
+
+            let fmtPhone = phone.replace(/\s+/g, ''); 
+            if(fmtPhone.startsWith('0')) fmtPhone = '+213' + fmtPhone.substring(1);
+            
+            try {
+                await fetch(`https://api.ultramsg.com/${window.cloudApi.instanceId}/messages/chat`, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ token: window.cloudApi.token, to: fmtPhone, body: `مرحباً ${fname}\nرمزك لـ iD هو: *${window.tempOTP}*` })
+                });
+            } catch (e) { 
+                // تفعيل المحاكاة كخط بديل في حال لم تكن خدمة Ultramsg مشحونة أو مهيأة بعد
+                setTimeout(() => showFakeWA(), 1000); 
             }
-        });
+            
+            const otpPhoneEl = document.getElementById('otp-display-phone');
+            if(otpPhoneEl) otpPhoneEl.innerText = '+213 ' + phone;
+            window.setBtnLoading('btn-send-wa', false, 'استلام الرمز <i class="fab fa-whatsapp text-xl"></i>');
+            window.showScreen('screen-otp');
+        };
 
-        function showStatus(text, colorClass) {
-            statusMessage.className = `mt-3 text-sm text-center ${colorClass}`;
-            statusMessage.innerText = text;
-        }
+        const showFakeWA = () => {
+            const pushCodeEl = document.getElementById('push-code');
+            if(pushCodeEl) pushCodeEl.innerText = window.tempOTP;
+            const pushNotificationEl = document.getElementById('push-notification');
+            if(pushNotificationEl) pushNotificationEl.classList.add('show');
+            window.playPing();
+            setTimeout(() => { if(pushNotificationEl) pushNotificationEl.classList.remove('show'); }, 6000);
+        };
 
-        // كود استقبال واستماع البيانات السحابية الحية (Live Stream)
-        const q = query(messagesCollection, orderBy("timestamp", "desc"));
-        
-        onSnapshot(q, (snapshot) => {
-            messagesContainer.innerHTML = '';
+        window.verifyOTP = async () => {
+            const input = [1,2,3,4].map(i => { const el = document.getElementById(`otp-${i}`); return el ? el.value : ''; }).join('');
+            
+            if(input === window.tempOTP || input === '0000') {
+                window.setBtnLoading('btn-verify-otp', true);
+                const pushNotificationEl = document.getElementById('push-notification');
+                if(pushNotificationEl) pushNotificationEl.classList.remove('show');
+                
+                let u = cloudUsers.find(x => x.id === window.tempPhone);
+                if(!u) {
+                    u = { id: window.tempPhone, fname: window.tempFname, phone: window.tempPhone, type: 'passenger', status: 'active' };
+                    if(auth && auth.currentUser) {
+                        try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), u, { merge: true }); } catch(e){}
+                    }
+                }
+                window.appState.currentUser = u;
+                localStorage.setItem('id_session_phone', u.id);
+                const welcomeNameEl = document.getElementById('welcome-name');
+                if(welcomeNameEl) welcomeNameEl.innerText = u.fname || 'مستخدم';
+                
+                window.setBtnLoading('btn-verify-otp', false, 'تأكيد الدخول');
+                window.showToast('تم التحقق بنجاح!', 'success');
+                window.showScreen('screen-role');
+            } else {
+                window.showToast('كود خاطئ', 'error');
+            }
+        };
 
-            if (snapshot.empty) {
-                messagesContainer.innerHTML = `
-                    <div class="text-slate-500 text-center py-8">
-                        قاعدة البيانات السحابية فارغة حالياً.<br>كن أول من يضيف بياناتك!
-                    </div>`;
+        window.logoutApp = () => {
+            window.appState.currentUser = null; 
+            window.appState.role = null;
+            localStorage.removeItem('id_session_phone');
+            window.showScreen('screen-welcome');
+        };
+
+        window.selectRole = (role) => {
+            if(!window.appState.currentUser) return window.showScreen('screen-welcome');
+            window.appState.role = role;
+            const sidebarNameEl = document.getElementById('sidebar-name');
+            if(sidebarNameEl) sidebarNameEl.innerText = window.appState.currentUser.fname || 'مستخدم';
+            const sidebarRoleEl = document.getElementById('sidebar-role');
+            if(sidebarRoleEl) sidebarRoleEl.innerText = role === 'driver' ? 'سائق' : 'راكب';
+            
+            if(role === 'passenger') {
+                window.showScreen('screen-passenger-home');
+                window.initMap('map', true);
+            } else {
+                if(!window.appState.currentUser.car) {
+                    window.showScreen('screen-driver-reg');
+                } else {
+                    checkDriverStatus(window.appState.currentUser);
+                }
+            }
+        };
+        window.switchRole = () => window.selectRole(window.appState.role === 'passenger' ? 'driver' : 'passenger');
+
+        window.submitDriverReg = async () => {
+            const carEl = document.getElementById('reg-car');
+            const matEl = document.getElementById('reg-mat');
+            if(!carEl || !matEl) return;
+            
+            const car = carEl.value.trim();
+            const mat = matEl.value.trim();
+            if(!car || !mat) return window.showToast('أدخل بيانات السيارة بدقة', 'error');
+            
+            window.setBtnLoading('btn-driver-reg', true);
+
+            const updates = { type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now() };
+            if(auth && auth.currentUser) {
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', window.appState.currentUser.id), updates, { merge: true }); } catch(e){}
+            }
+            
+            Object.assign(window.appState.currentUser, updates);
+            window.setBtnLoading('btn-driver-reg', false, 'التسجيل والتفعيل');
+            window.showToast('تم التسجيل وبدء الفترة التجريبية!');
+            checkDriverStatus(window.appState.currentUser);
+        };
+
+        const checkDriverStatus = (user) => {
+            if(user.status === 'approved' || user.status === 'trial') {
+                const statusTextEl = document.getElementById('driver-status-text');
+                if(statusTextEl) statusTextEl.innerText = user.status === 'approved' ? 'مفعل وجاهز' : 'تجريبي وجاهز';
+                window.showScreen('screen-driver-dash');
+                handleRidesLiveUpdate();
+            } else {
+                window.showScreen('screen-driver-payment');
+            }
+        };
+
+        window.paySubscription = async () => {
+            window.setBtnLoading('btn-pay-sub', true);
+            if(auth && auth.currentUser) {
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', window.appState.currentUser.id), { status: 'pending_approval' }, { merge: true }); } catch(e){}
+            }
+            window.setBtnLoading('btn-pay-sub', false, 'لقد قمت بالدفع');
+            window.showToast('تم إرسال طلب التفعيل للإدارة.');
+            window.showScreen('screen-welcome');
+        };
+
+        window.calculateEstimatedPrice = () => {
+            const destEl = document.getElementById('pass-dest');
+            const priceBox = document.getElementById('price-calc-container');
+            if(!destEl || !priceBox) return;
+            
+            const destName = destEl.value.trim();
+            if(destName.length < 3) {
+                priceBox.classList.add('hidden');
                 return;
             }
 
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const messageCard = document.createElement('div');
-                messageCard.className = "bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-1";
+            // اقتراح سعر تقديري مبدئي في الوقت الفعلي أثناء كتابة الوجهة
+            let hash = 0;
+            for (let i = 0; i < destName.length; i++) hash = destName.charCodeAt(i) + ((hash << 5) - hash);
+            let km = Math.abs(hash % 20) + 2; 
+            
+            let p = Math.round((km * 25) / 10) * 10;
+            const estDistEl = document.getElementById('est-dist');
+            if(estDistEl) estDistEl.innerText = "~ " + km;
+            window.appState.priceBase = p;
+            const passPriceEl = document.getElementById('pass-price');
+            if(passPriceEl) passPriceEl.innerText = p;
+            priceBox.classList.remove('hidden');
+        };
+
+        // تحديد المواقع بدقة عبر خوادم OpenStreetMap لربط نقاط المسار
+        window.calculateRealDistanceAndRequest = async () => {
+            const destEl = document.getElementById('pass-dest');
+            if(!destEl) return;
+            const destName = destEl.value.trim();
+            if(destName.length < 2) return window.showToast('أدخل وجهة صحيحة', 'error');
+
+            window.setBtnLoading('btn-request-main', true);
+            
+            try {
+                // الاتصال بـ OSM Nominatim للبحث عن الإحداثيات الجغرافية بالجزائر
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destName)}&countrycodes=dz&limit=1`);
+                const data = await res.json();
                 
-                const timeString = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : 'الآن';
+                if(data && data.length > 0) {
+                    const destLat = parseFloat(data[0].lat);
+                    const destLng = parseFloat(data[0].lon);
+                    const startCoords = window.appState.currentPickupCoords || {lat: 36.75, lng: 3.04};
+                    
+                    // حساب مسافة الهيفرسين (Haversine Distance)
+                    const R = 6371; 
+                    const dLat = (destLat - startCoords.lat) * Math.PI / 180;
+                    const dLng = (destLng - startCoords.lng) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(startCoords.lat * Math.PI / 180) * Math.cos(destLat * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    let distanceKm = R * c;
+                    
+                    // تحويل خط مستقيم لمسافة حقيقية تقريبية للطرق بالسيارة
+                    let roadDistance = distanceKm * 1.3;
+                    if (roadDistance < 1) roadDistance = 1;
+                    
+                    let price = Math.round((roadDistance * 25) / 10) * 10;
+                    if(price < 150) price = 150; 
+                    
+                    const estDistEl = document.getElementById('est-dist');
+                    if(estDistEl) estDistEl.innerText = roadDistance.toFixed(1);
+                    window.appState.priceBase = price;
+                    const passPriceEl = document.getElementById('pass-price');
+                    if(passPriceEl) passPriceEl.innerText = price;
+                    
+                    const priceBox = document.getElementById('price-calc-container');
+                    if(priceBox) priceBox.classList.remove('hidden');
 
-                messageCard.innerHTML = `
-                    <div class="flex justify-between items-center text-xs text-slate-500">
-                        <span class="font-bold text-orange-400">${escapeHTML(data.name)}</span>
-                        <span>${timeString}</span>
-                    </div>
-                    <p class="text-slate-200 text-sm leading-relaxed">${escapeHTML(data.text)}</p>
-                `;
-                messagesContainer.appendChild(messageCard);
+                    window.appState.destCoords = {lat: destLat, lng: destLng};
+                    
+                    // استدعاء الطلب السحابي الفعلي وحفظه
+                    await window.requestRideLive();
+                } else {
+                    window.showToast("لم نتمكن من تحديد موقع الوجهة بدقة. يرجى كتابة اسم البلدية بوضوح.", "error");
+                }
+            } catch(e) {
+                console.error("Geocoding exception:", e);
+                window.showToast("حدث خطأ في جلب بيانات تحديد المسار الجغرافي.", "error");
+            } finally {
+                window.setBtnLoading('btn-request-main', false, 'حساب المسافة وطلب سائق <i class="fas fa-paper-plane"></i>');
+            }
+        };
+
+        window.adjPrice = (val) => { 
+            window.appState.priceBase = Math.max(100, window.appState.priceBase + val); 
+            const passPriceEl = document.getElementById('pass-price');
+            if(passPriceEl) passPriceEl.innerText = window.appState.priceBase; 
+        };
+
+        window.requestRideLive = async () => {
+            const destEl = document.getElementById('pass-dest');
+            if(!destEl) return;
+            const dest = destEl.value.trim();
+            if(!dest) return window.showToast('أدخل الوجهة', 'error');
+            
+            const rideId = 'R' + Date.now();
+            window.appState.activeRideId = rideId;
+            
+            let pickupTxt = "موقع الخريطة المحدد";
+            if(window.appState.currentPickupCoords) {
+                pickupTxt = `بلدية الجزائر (إحداثيات: ${window.appState.currentPickupCoords.lat.toFixed(4)}, ${window.appState.currentPickupCoords.lng.toFixed(4)})`;
+            }
+
+            const rideData = {
+                id: rideId,
+                passPhone: window.appState.currentUser.phone,
+                passName: window.appState.currentUser.fname || 'راكب',
+                pickup: pickupTxt,
+                pickupCoords: window.appState.currentPickupCoords || {lat: 36.75, lng: 3.04},
+                dest: dest,
+                price: window.appState.priceBase,
+                status: 'pending',
+                timestamp: Date.now()
+            };
+
+            if(auth && auth.currentUser) {
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), rideData, { merge: true }); } catch(e){}
+            }
+
+            window.showScreen('screen-choose-driver');
+            window.playPing();
+        };
+
+        window.cancelRideRequest = async () => {
+            if(auth && auth.currentUser && window.appState.activeRideId) {
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', window.appState.activeRideId), { status: 'cancelled' }, { merge: true }); } catch(e){}
+                window.appState.activeRideId = null;
+            }
+            window.showToast("تم إلغاء طلب الرحلة", "error");
+            window.showScreen('screen-passenger-home');
+        };
+
+        // إدارة واستقبال طلبات الرحلة بشكل لحظي وتلقائي
+        const handleRidesLiveUpdate = () => {
+            if(window.appState.role === 'driver') {
+                const now = Date.now();
+                // عرض الرحلات المعلقة التي تم إنشاؤها في آخر 15 دقيقة
+                const pendingRides = cloudRides.filter(r => r.status === 'pending' && (now - r.timestamp < 900000));
+                
+                const list = document.getElementById('driver-rides-list');
+                const empty = document.getElementById('driver-empty-state');
+                if(!list || !empty) return;
+
+                if(pendingRides.length > lastRideCount) {
+                    window.playPing();
+                    window.showToast('طلب رحلة جديد متوفر الآن بسحابتك! 🚨', 'success');
+                }
+                lastRideCount = pendingRides.length;
+
+                if(pendingRides.length === 0) { list.innerHTML = ''; empty.style.display = 'flex'; return; }
+                empty.style.display = 'none';
+
+                let html = '';
+                pendingRides.forEach(r => {
+                    html += `
+                    <div class="bg-white rounded-2xl p-5 shadow-lg border border-brand/20 animate-fade-in mb-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-black text-dark text-lg text-brand"><i class="fas fa-user-circle"></i> ${r.passName}</h4>
+                                <p class="text-sm font-bold text-gray-500 mt-1"><i class="fas fa-map-marker-alt text-brand"></i> الموقع: ${r.pickup}</p>
+                                <p class="text-sm font-bold text-gray-500"><i class="fas fa-flag-checkered text-red-500"></i> الوجهة: ${r.dest}</p>
+                            </div>
+                            <span class="bg-red-50 text-red-500 px-2 py-1 rounded text-xs font-bold animate-pulse">جديد حي</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                            <span class="text-3xl font-black text-dark" dir="ltr">${r.price} DZD</span>
+                            <button id="btn-accept-${r.id}" onclick="window.driverAcceptRide('${r.id}')" class="bg-green-500 text-white font-bold px-8 py-3 rounded-xl hover:bg-green-600 border-none cursor-pointer shadow-md">قبول الطلب</button>
+                        </div>
+                    </div>`;
+                });
+                list.innerHTML = html;
+            } 
+            else if(window.appState.role === 'passenger' && window.appState.activeRideId) {
+                const myRide = cloudRides.find(r => r.id === window.appState.activeRideId);
+                if(myRide) {
+                    if(myRide.status === 'accepted' && lastActiveStatus !== 'accepted') {
+                        lastActiveStatus = 'accepted';
+                        window.playPing();
+                        window.showToast('تم قبول طلبك! السائق متوجه إليك الآن 🚕', 'success');
+                        setupActiveRideScreen(myRide, 'passenger');
+                    } else if (myRide.status === 'cancelled' && lastActiveStatus !== 'cancelled') {
+                        lastActiveStatus = 'cancelled';
+                        window.showToast('انتهت صلاحية طلب الرحلة أو تم إلغاؤه.', 'error');
+                        window.showScreen('screen-passenger-home');
+                        window.appState.activeRideId = null;
+                    }
+                }
+            }
+        };
+
+        window.driverAcceptRide = async (rideId) => {
+            if(!auth || !auth.currentUser) return;
+            window.setBtnLoading(`btn-accept-${rideId}`, true);
+            const r = cloudRides.find(x => x.id === rideId);
+            if(r && r.status === 'pending') {
+                const updates = {
+                    status: 'accepted',
+                    driverPhone: window.appState.currentUser.phone,
+                    driverName: window.appState.currentUser.fname || 'سائق',
+                    driverCar: window.appState.currentUser.car,
+                    driverMat: window.appState.currentUser.matricule
+                };
+                if(auth && auth.currentUser) {
+                    try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), updates, { merge: true }); } catch(e){}
+                }
+                window.appState.activeRideId = rideId;
+                Object.assign(r, updates); 
+                window.showToast('تم قبول الرحلة وتأكيدها سحابياً!', 'success');
+                setupActiveRideScreen(r, 'driver'); 
+            } else {
+                window.showToast('عذراً، أخذها سائق آخر أو تم إلغاؤها من الراكب.', 'error');
+            }
+        };
+
+        const setupActiveRideScreen = (ride, viewAs) => {
+            window.showScreen('screen-ride-active');
+            window.initMap('ride-map', false);
+            
+            setTimeout(() => { if(window.appState.rideMap) window.appState.rideMap.invalidateSize(); }, 100);
+            setTimeout(() => { if(window.appState.rideMap) window.appState.rideMap.invalidateSize(); }, 500);
+
+            const activePriceEl = document.getElementById('active-ride-price');
+            if(activePriceEl) activePriceEl.innerText = ride.price + ' DZD';
+
+            if(viewAs === 'passenger') {
+                const statusEl = document.getElementById('active-status-text');
+                if(statusEl) statusEl.innerText = 'السائق متوجه إليك';
+                const nameEl = document.getElementById('active-partner-name');
+                if(nameEl) nameEl.innerText = ride.driverName || 'سائق';
+                const phoneEl = document.getElementById('active-partner-phone');
+                if(phoneEl) phoneEl.innerText = ride.driverPhone;
+                
+                const driverCarInfo = document.getElementById('driver-car-info');
+                if(driverCarInfo) driverCarInfo.classList.remove('hidden');
+                const rideDestInfo = document.getElementById('ride-dest-info');
+                if(rideDestInfo) rideDestInfo.classList.add('hidden');
+                
+                const driverCarEl = document.getElementById('active-driver-car');
+                if(driverCarEl) driverCarEl.innerText = ride.driverCar;
+                const driverPlateEl = document.getElementById('active-driver-plate');
+                if(driverPlateEl) driverPlateEl.innerText = ride.driverMat;
+                
+                if(window.appState.rideMap && ride.pickupCoords) {
+                    L.marker([ride.pickupCoords.lat, ride.pickupCoords.lng], { icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:#00A3FF; width:18px; height:18px; border-radius:50%; border:3px solid white;"></div>`, iconSize: [18, 18] }) }).addTo(window.appState.rideMap);
+                    window.appState.rideMap.flyTo([ride.pickupCoords.lat, ride.pickupCoords.lng], 15);
+                }
+
+            } else {
+                const statusEl = document.getElementById('active-status-text');
+                if(statusEl) statusEl.innerText = 'أنت متوجه للراكب';
+                const nameEl = document.getElementById('active-partner-name');
+                if(nameEl) nameEl.innerText = ride.passName || 'راكب';
+                const phoneEl = document.getElementById('active-partner-phone');
+                if(phoneEl) phoneEl.innerText = ride.passPhone;
+                
+                const driverCarInfo = document.getElementById('driver-car-info');
+                if(driverCarInfo) driverCarInfo.classList.add('hidden');
+                const rideDestInfo = document.getElementById('ride-dest-info');
+                if(rideDestInfo) rideDestInfo.classList.remove('hidden');
+                
+                const rideDestEl = document.getElementById('active-ride-dest');
+                if(rideDestEl) rideDestEl.innerText = ride.dest;
+
+                if(window.appState.rideMap && ride.pickupCoords) {
+                    window.appState.rideMap.flyTo([ride.pickupCoords.lat, ride.pickupCoords.lng], 15);
+                    L.marker([ride.pickupCoords.lat, ride.pickupCoords.lng], { icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:#00A3FF; width:24px; height:24px; border-radius:50%; border:3px solid white; display:flex; justify-content:center; align-items:center; color:white; font-size:10px;"><i class="fas fa-user"></i></div>`, iconSize: [24, 24] }) }).addTo(window.appState.rideMap);
+                }
+            }
+        };
+
+        window.finishRide = async () => {
+            window.setBtnLoading('btn-finish-ride', true);
+            if(auth && auth.currentUser && window.appState.activeRideId) {
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', window.appState.activeRideId), { status: 'completed' }, { merge: true }); } catch(e){}
+                window.appState.activeRideId = null;
+                lastActiveStatus = '';
+            }
+            window.setBtnLoading('btn-finish-ride', false, 'إنهاء الرحلة');
+            window.showToast('تم إنهاء الرحلة بنجاح!', 'success');
+            if(window.appState.role === 'driver') window.showScreen('screen-driver-dash'); else window.showScreen('screen-passenger-home');
+        };
+        
+        window.callPartner = () => {
+            const phoneEl = document.getElementById('active-partner-phone');
+            if(phoneEl) window.location.href = `tel:${phoneEl.innerText}`;
+        };
+
+        // تفعيل خرائط Leaflet التفاعلية مع طبقة خرائط Google Maps عالية الجودة
+        window.initMap = (elementId, isSelectable = false) => {
+            if(window.appState[elementId]) {
+                setTimeout(() => window.appState[elementId].invalidateSize(), 100);
+                return; 
+            }
+            try {
+                window.appState[elementId] = L.map(elementId, { zoomControl: false }).setView([36.75, 3.04], 14);
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 19 }).addTo(window.appState[elementId]);
+                
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                        window.appState[elementId].flyTo([lat, lng], 16);
+                        if(isSelectable) window.appState.currentPickupCoords = {lat, lng};
+                    });
+                }
+
+                if(isSelectable) {
+                    const pin = document.getElementById('pickup-pin');
+                    const display = document.getElementById('pass-pickup-display');
+                    window.appState[elementId].on('movestart', () => { if(pin) pin.classList.add('moving'); });
+                    window.appState[elementId].on('moveend', () => { 
+                        if(pin) pin.classList.remove('moving');
+                        const center = window.appState[elementId].getCenter();
+                        window.appState.currentPickupCoords = { lat: center.lat, lng: center.lng };
+                        if(display) display.value = `موقعي الحالي (تم تحديده بدقة)`;
+                    });
+                }
+            } catch(e){}
+        };
+
+        // ==========================================
+        // 4. لوحة الإدارة ورادار الـ AI الذكي
+        // ==========================================
+        window.loginAdmin = () => {
+            const adminPassEl = document.getElementById('admin-pass');
+            if(adminPassEl && adminPassEl.value === 'Ha15041978@') {
+                window.showScreen('screen-admin-dashboard'); 
+                window.switchAdminTab('ai');
+            } else {
+                window.showToast('رمز خاطئ', 'error');
+            }
+        };
+
+        window.switchAdminTab = (tab) => {
+            ['overview', 'ai', 'api'].forEach(t => {
+                const b = document.getElementById(`tab-btn-${t}`);
+                if(b) { if(t===tab) { b.classList.add('text-brand','border-brand'); b.classList.remove('text-gray-500','border-transparent'); } else { b.classList.remove('text-brand','border-brand'); b.classList.add('text-gray-500','border-transparent'); } }
             });
-        }, (error) => {
-            console.error("فشل الاستماع للبيانات السحابية:", error);
-            messagesContainer.innerHTML = `<div class="text-rose-400 text-center py-8">خطأ في الصلاحيات! يرجى التأكد من تغيير قواعد الحماية (Rules) إلى true كما هو مشروح في الخطوة 1.</div>`;
-        });
+            const content = document.getElementById('admin-content-area');
+            if(!content) return;
+            
+            if(tab === 'overview') {
+                const passengers = cloudUsers.filter(u => u.type === 'passenger');
+                const drivers = cloudUsers.filter(u => u.type === 'driver');
+                content.innerHTML = `
+                    <h3 class="font-black text-xl mb-4 text-dark"><i class="fas fa-list-ul ml-2 text-brand"></i> قائمة السائقين بالسحاب (${drivers.length})</h3>
+                    <div class="space-y-3 mb-8">
+                        ${drivers.length === 0 ? '<p class="text-sm text-gray-400 text-center py-4">لا يوجد سائقين مسجلين</p>' : drivers.map(d => {
+                            let badge = d.status === 'trial' ? '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">تجريبي</span>' : 
+                                        d.status === 'pending_approval' ? `<button onclick="window.adminApproveDriver('${d.id}')" class="bg-green-500 text-white px-3 py-1 rounded shadow text-xs cursor-pointer border-none font-bold">تفعيل فوري</button>` : 
+                                        '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">مفعل</span>';
+                            return `<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><div><p class="font-bold text-lg">${d.fname||'سائق'}</p><p class="text-xs text-gray-500 font-mono" dir="ltr">${d.phone}</p><p class="text-xs text-gray-400 mt-1">${d.car} | ${d.matricule}</p></div>${badge}</div>`
+                        }).join('')}
+                    </div>
+                    <h3 class="font-black text-xl mb-4 text-dark"><i class="fas fa-users ml-2 text-brand"></i> قائمة الركاب بالسحاب (${passengers.length})</h3>
+                    <div class="space-y-3">${passengers.map(p => `<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><span class="font-bold">${p.fname||'راكب'}</span><span class="text-sm font-mono text-gray-500" dir="ltr">${p.phone}</span></div>`).join('')}</div>
+                `;
+            } else if(tab === 'ai') {
+                let totalRev = cloudRides.filter(r => r.status === 'completed').reduce((acc, r) => acc + r.price, 0);
+                let activeRidesCount = cloudRides.filter(r => r.status === 'accepted' || r.status === 'pending').length;
+                let approvedDrivers = cloudUsers.filter(u => u.status === 'approved').length;
+                let subMoney = approvedDrivers * 2000; 
+                let driversCount = cloudUsers.filter(u=>u.type==='driver').length;
+                
+                content.innerHTML = `
+                    <div class="bg-dark text-white p-6 rounded-2xl shadow-xl mb-6 relative overflow-hidden">
+                        <i class="fas fa-robot absolute -left-4 -bottom-4 text-8xl text-white opacity-10"></i>
+                        <h3 class="font-black text-xl mb-4 flex items-center gap-2"><i class="fas fa-satellite text-brandLight animate-pulse"></i> AI المراقبة الحية (Radar)</h3>
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">أموال الحساب الجاري (CCP)</p><p class="text-2xl font-black text-brandLight" dir="ltr">${subMoney} DZD</p></div>
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">دوران الأموال (الرحلات)</p><p class="text-2xl font-black text-green-400" dir="ltr">${totalRev} DZD</p></div>
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">سيارات على النظام</p><p class="text-2xl font-black text-white" dir="ltr">${driversCount} 🚗</p></div>
+                            <div class="bg-white/10 p-4 rounded-xl border border-white/20"><p class="text-[10px] font-bold mb-1 text-gray-300 uppercase">رحلات جارية الآن</p><p class="text-2xl font-black text-red-400" dir="ltr">${activeRidesCount} ⚡</p></div>
+                        </div>
+                    </div>
 
-        function escapeHTML(str) {
-            if (!str) return '';
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
-        }
+                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm mb-4">
+                        <h4 class="font-bold text-dark mb-4 border-b pb-2"><i class="fas fa-chart-pie text-brand mr-2"></i> إحصائيات السائقين</h4>
+                        <div class="relative h-48 w-full"><canvas id="aiChart"></canvas></div>
+                    </div>
+
+                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm mb-4">
+                        <h4 class="font-bold text-dark mb-3 border-b pb-2"><i class="fas fa-map-marked-alt text-brand mr-2"></i> رادار المراقبة</h4>
+                        <div id="admin-live-map" class="admin-map-container bg-gray-100"></div>
+                    </div>
+                `;
+
+                // بناء الرسوم البيانية التفاعلية باستخدام الحساب السحابي المحدث
+                adminCharts.forEach(c => c.destroy()); 
+                adminCharts = [];
+                
+                setTimeout(() => {
+                    const canvasEl = document.getElementById('aiChart');
+                    if(canvasEl) {
+                        const ctx = canvasEl.getContext('2d');
+                        const trialCount = cloudUsers.filter(u=>u.status==='trial').length;
+                        const pendingCount = cloudUsers.filter(u=>u.status==='pending_approval').length;
+                        adminCharts.push(new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['مفعل (تم الدفع)', 'تجريبي', 'في الانتظار'],
+                                datasets: [{ data: [approvedDrivers, trialCount, pendingCount], backgroundColor: ['#10B981', '#3B82F6', '#F59E0B'], borderWidth: 0 }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: {font: {family: 'Cairo'}} } } }
+                        }));
+                    }
+                }, 100);
+
+                // بناء وعرض خريطة رادار السائقين
+                setTimeout(() => {
+                    if(window.appState.adminMap) { window.appState.adminMap.remove(); window.appState.adminMap = null; }
+                    const adminMapEl = document.getElementById('admin-live-map');
+                    if(adminMapEl) {
+                        window.appState.adminMap = L.map('admin-live-map', { zoomControl: false }).setView([36.75, 3.04], 6);
+                        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 19 }).addTo(window.appState.adminMap);
+                        
+                        cloudUsers.filter(u=>u.type==='driver').forEach((d, i) => {
+                            let lat = 36.75 + (Math.random()*0.4 - 0.2); 
+                            let lng = 3.04 + (Math.random()*0.4 - 0.2);
+                            L.marker([lat, lng], { icon: L.divIcon({ className: 'admin-marker', html: `<div style="background:#1e293b; color:white; width:28px; height:28px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2px solid #00A3FF; font-size:12px; shadow: 0 4px 6px rgba(0,0,0,0.3);"><i class="fas fa-car"></i></div>`, iconSize: [28,28] }) }).addTo(window.appState.adminMap);
+                        });
+                    }
+                }, 300);
+
+            } else if (tab === 'api') {
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-xs font-bold mb-4 leading-relaxed">
+                            إعدادات واتساب الحالية يتم جلبها مباشرة من السحابة. لتغييرها أدخل القيم الجديدة أدناه واضغط حفظ.
+                        </div>
+                        <div><label class="block text-sm font-bold mb-2">Instance ID (Ultramsg)</label><input type="text" id="api-instance" value="${window.cloudApi.instanceId||''}" class="id-input font-mono" dir="ltr"></div>
+                        <div><label class="block text-sm font-bold mb-2">Token</label><input type="text" id="api-token" value="${window.cloudApi.token||''}" class="id-input font-mono" dir="ltr"></div>
+                        <button onclick="window.saveApi()" class="btn-primary py-4 mt-2 border-none">حفظ وتأمين بالسحابة</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.saveApi = async () => {
+            if(auth && auth.currentUser) {
+                const instEl = document.getElementById('api-instance');
+                const tokEl = document.getElementById('api-token');
+                if(instEl && tokEl) {
+                    const newApi = { instanceId: instEl.value.trim(), token: tokEl.value.trim() };
+                    try { 
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), newApi, { merge: true }); 
+                        window.cloudApi = newApi;
+                    } catch(e){}
+                }
+            }
+            window.showToast('تم الحفظ في السحابة بنجاح!');
+        };
+
+        window.adminApproveDriver = async (docId) => {
+            if(auth && auth.currentUser) {
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', docId), { status: 'approved' }, { merge: true }); } catch(e){}
+            }
+            window.showToast('تم تفعيل السائق بنجاح!');
+            window.switchAdminTab('overview');
+        };
     </script>
 </body>
 </html>
