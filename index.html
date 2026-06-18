@@ -55,19 +55,19 @@
         .animate-custom-ping { animation: customPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
 
         /* Initial Loading Screen */
-        #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0;}
+        #screen-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #ffffff; z-index: 9999; position: fixed; width: 100%; top: 0; left: 0; transition: opacity 0.5s;}
     </style>
 </head>
 <body class="antialiased">
 
-    <!-- Cloud Initialization Loader -->
+    <!-- Loading Screen -->
     <div id="screen-loading">
         <div class="relative w-24 h-24 flex justify-center items-center mb-6">
             <div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div>
             <span class="text-4xl font-black text-brand">iD</span>
         </div>
-        <h2 class="text-xl font-bold text-dark mb-2">جاري الاتصال بالسحابة...</h2>
-        <p class="text-gray-500 text-sm font-semibold">تأمين قاعدة البيانات الموحدة ☁️</p>
+        <h2 class="text-xl font-bold text-dark mb-2">جاري الاتصال...</h2>
+        <p class="text-gray-500 text-sm font-semibold">تجهيز المنصة ☁️</p>
     </div>
 
     <!-- WhatsApp Push Notification -->
@@ -90,7 +90,7 @@
                 <h3 class="font-bold text-lg text-dark" id="sidebar-name">مستخدم</h3>
                 <div class="text-brand font-semibold text-sm flex items-center mt-1"><i class="fas fa-star ml-1 text-yellow-400"></i> <span id="sidebar-role">راكب</span></div>
             </div>
-            <button onclick="window.closeSidebar()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm"><i class="fas fa-times"></i></button>
+            <button onclick="window.closeSidebar()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm border-none bg-white"><i class="fas fa-times"></i></button>
         </div>
         
         <div class="flex-1 py-4">
@@ -118,7 +118,8 @@
                 </div>
             </div>
             <h1 class="text-4xl font-black mb-4 text-dark leading-tight tracking-wider" dir="ltr">iD Algérie</h1>
-            <p class="text-gray-500 font-semibold text-lg">قاعدة بيانات سحابية موحدة ☁️</p>
+            <p class="text-gray-500 font-semibold text-lg">أنت من يقترح السعر.. نقل ذكي 🚕</p>
+            <span id="db-status-badge" class="mt-4 px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-bold border border-gray-200"></span>
         </div>
         
         <div class="p-6 pb-10 space-y-3 z-10 relative bg-white w-full rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -217,7 +218,7 @@
 
     <div id="screen-driver-dash" class="screen flex flex-col bg-background">
         <div class="p-4 flex items-center justify-between bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
-            <div class="flex items-center gap-4"><button onclick="window.openSidebar()" class="text-dark w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shadow-sm border-none"><i class="fas fa-bars"></i></button><div class="bg-brandLight text-brand px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2"><div class="w-2 h-2 bg-brand rounded-full animate-pulse"></div> <span id="driver-status-text">متصل بالسحابة</span></div></div>
+            <div class="flex items-center gap-4"><button onclick="window.openSidebar()" class="text-dark w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shadow-sm border-none"><i class="fas fa-bars"></i></button><div class="bg-brandLight text-brand px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2"><div class="w-2 h-2 bg-brand rounded-full animate-pulse"></div> <span id="driver-status-text">متصل وجاهز</span></div></div>
         </div>
         <div class="p-4 flex-1 overflow-y-auto flex flex-col relative">
             <div id="driver-empty-state" class="flex flex-col items-center justify-center h-full absolute inset-0">
@@ -233,16 +234,16 @@
     <div id="screen-passenger-home" class="screen relative h-screen overflow-hidden">
         <div id="map" class="map-container"></div>
         <div class="absolute top-8 left-0 w-full px-6 z-20 flex justify-between items-center pointer-events-none">
-            <button onclick="window.openSidebar()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-dark shadow-lg pointer-events-auto border border-gray-100"><i class="fas fa-bars"></i></button>
+            <button onclick="window.openSidebar()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-dark shadow-lg pointer-events-auto border border-gray-100 border-none"><i class="fas fa-bars"></i></button>
         </div>
         <div class="bottom-sheet p-6">
             <h3 class="font-black text-2xl mb-4 text-dark">إلى أين تذهب؟</h3>
             <div class="bg-background rounded-2xl p-4 mb-4 border border-gray-200">
-                <div class="flex items-center mt-2 gap-4"><div class="w-3 h-3 bg-red-500 rounded-full"></div><input type="text" id="pass-dest" placeholder="أدخل وجهتك هنا..." class="w-full bg-transparent text-dark font-black text-xl outline-none" oninput="window.calculateEstimatedPrice()"></div>
+                <div class="flex items-center mt-2 gap-4"><div class="w-3 h-3 bg-red-500 rounded-full"></div><input type="text" id="pass-dest" placeholder="أدخل وجهتك هنا..." class="w-full bg-transparent text-dark font-black text-xl outline-none border-none" oninput="window.calculateEstimatedPrice()"></div>
             </div>
             <div id="price-calc-container" class="hidden flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl mb-4 text-brand font-bold text-sm">المسافة التقريبية: <span id="est-dist">--</span> كم (25 د.ج/كم)</div>
             <div class="flex items-center justify-between mb-6">
-                <div class="flex flex-col"><span class="text-sm font-bold text-gray-500 mb-2">السعر (د.ج)</span><div class="flex items-center bg-gray-100 rounded-xl p-1 w-fit" dir="ltr"><button onclick="window.adjPrice(-10)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg">-</button><span class="px-4 font-black text-3xl text-brand w-24 text-center" id="pass-price">100</span><button onclick="window.adjPrice(10)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg">+</button></div></div>
+                <div class="flex flex-col"><span class="text-sm font-bold text-gray-500 mb-2">السعر (د.ج)</span><div class="flex items-center bg-gray-100 rounded-xl p-1 w-fit" dir="ltr"><button onclick="window.adjPrice(-10)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg cursor-pointer">-</button><span class="px-4 font-black text-3xl text-brand w-24 text-center" id="pass-price">100</span><button onclick="window.adjPrice(10)" class="w-12 h-12 bg-white text-dark text-2xl font-bold shadow-sm border-none rounded-lg cursor-pointer">+</button></div></div>
             </div>
             <button onclick="window.requestRideLive()" class="btn-primary py-4 text-xl shadow-lg flex justify-center items-center gap-3">إرسال الطلب للسائقين <i class="fas fa-paper-plane"></i></button>
         </div>
@@ -252,7 +253,7 @@
         <div class="p-6 pt-10 flex justify-between items-center bg-white shadow-sm sticky top-0 z-20"><button onclick="window.cancelRideRequest()" class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center border-none"><i class="fas fa-times"></i></button><h2 class="text-xl font-black text-dark">البحث عن سائق</h2><div class="w-10"></div></div>
         <div class="p-4 flex-1 flex flex-col items-center justify-center text-brand">
             <div class="relative w-32 h-32 flex justify-center items-center mb-8"><div class="absolute inset-0 border-4 border-brand opacity-30 rounded-full animate-ping"></div><i class="fas fa-car-side text-5xl bg-white w-20 h-20 rounded-full flex items-center justify-center shadow-lg relative z-10"></i></div>
-            <p class="text-dark font-black text-2xl mb-2">جاري البحث...</p><p class="text-gray-500 font-bold text-center">الطلب معروض الآن على السائقين المتصلين بالسحابة.</p>
+            <p class="text-dark font-black text-2xl mb-2">جاري البحث...</p><p class="text-gray-500 font-bold text-center">الطلب معروض الآن على السائقين المتاحين.</p>
         </div>
     </div>
 
@@ -271,8 +272,8 @@
             </div>
             <div id="ride-dest-info" class="bg-blue-50 rounded-2xl p-4 mb-6 border border-blue-100 hidden"><p class="text-xs text-gray-500 font-bold mb-1">الوجهة المطلوبة:</p><p id="active-ride-dest" class="font-bold text-dark text-lg">--</p></div>
             <div class="flex gap-4">
-                <button onclick="window.finishRide()" class="w-1/3 bg-gray-100 text-dark font-bold py-4 rounded-xl text-lg border-none">إنهاء</button>
-                <button onclick="window.callPartner()" class="w-2/3 bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center gap-2 border-none"><i class="fas fa-phone-alt"></i> اتصال <span id="active-partner-phone" dir="ltr" class="font-mono text-sm bg-green-600 px-2 py-1 rounded"></span></button>
+                <button onclick="window.finishRide()" class="w-1/3 bg-gray-100 text-dark font-bold py-4 rounded-xl text-lg border-none cursor-pointer">إنهاء</button>
+                <button onclick="window.callPartner()" class="w-2/3 bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-lg flex justify-center items-center gap-2 border-none cursor-pointer"><i class="fas fa-phone-alt"></i> اتصال <span id="active-partner-phone" dir="ltr" class="font-mono text-sm bg-green-600 px-2 py-1 rounded"></span></button>
             </div>
         </div>
     </div>
@@ -283,88 +284,143 @@
             <h2 class="text-3xl font-black text-dark mb-6">دخول الإدارة</h2>
             <input type="password" id="admin-pass" placeholder="كلمة المرور: Ha15041978@" class="id-input text-center mb-6 font-mono text-lg bg-gray-50" dir="ltr">
             <button onclick="window.loginAdmin()" class="w-full bg-brand text-white font-bold py-4 rounded-xl text-xl border-none cursor-pointer">دخول</button>
-            <button onclick="window.showScreen('screen-welcome')" class="mt-6 text-gray-400 font-bold bg-transparent border-none">العودة للتطبيق</button>
+            <button onclick="window.showScreen('screen-welcome')" class="mt-6 text-gray-400 font-bold bg-transparent border-none cursor-pointer">العودة للتطبيق</button>
         </div>
     </div>
     <div id="screen-admin-dashboard" class="screen flex flex-col bg-gray-50">
-        <div class="bg-dark text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md"><h2 class="font-black text-xl"><i class="fas fa-shield-alt text-brand"></i> السحابة</h2><button onclick="window.showScreen('screen-welcome')" class="bg-gray-800 px-4 py-2 rounded-lg text-sm font-bold border-none text-white">خروج</button></div>
+        <div class="bg-dark text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md"><h2 class="font-black text-xl"><i class="fas fa-shield-alt text-brand"></i> لوحة التحكم</h2><button onclick="window.showScreen('screen-welcome')" class="bg-gray-800 px-4 py-2 rounded-lg text-sm font-bold border-none text-white cursor-pointer">خروج</button></div>
         <div class="bg-white border-b border-gray-200 flex text-sm font-bold overflow-x-auto whitespace-nowrap">
-            <button onclick="window.switchAdminTab('overview')" id="tab-btn-overview" class="px-6 py-4 text-brand border-b-2 border-brand shrink-0 bg-transparent border-t-0 border-l-0 border-r-0">البيانات</button>
-            <button onclick="window.switchAdminTab('ai')" id="tab-btn-ai" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0"><i class="fas fa-robot text-purple-500 mr-1"></i> AI مراقبة حية</button>
-            <button onclick="window.switchAdminTab('api')" id="tab-btn-api" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0">WhatsApp</button>
+            <button onclick="window.switchAdminTab('overview')" id="tab-btn-overview" class="px-6 py-4 text-brand border-b-2 border-brand shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer">البيانات</button>
+            <button onclick="window.switchAdminTab('ai')" id="tab-btn-ai" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer"><i class="fas fa-robot text-purple-500 mr-1"></i> AI مراقبة</button>
+            <button onclick="window.switchAdminTab('api')" id="tab-btn-api" class="px-6 py-4 text-gray-500 border-b-2 border-transparent shrink-0 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer">WhatsApp</button>
         </div>
         <div class="p-4 flex-1 overflow-y-auto" id="admin-content-area"></div>
     </div>
 
-    <!-- Firebase SDK Logic (Type=Module for real-time cloud connection) -->
+    <!-- Application Logic (Hybrid Firebase/Local Storage Core) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Environment Firebase Config or Fallback
-        let firebaseConfig = {
-            apiKey: "mock-key", authDomain: "mock.firebaseapp.com", projectId: "mock-project",
-            storageBucket: "mock.appspot.com", messagingSenderId: "123", appId: "1:123:web:123"
-        };
-        try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+        // 🔴🔴🔴 إعدادات Firebase الخاصة بك (إذا أردت السحابة الحقيقية على استضافتك) 🔴🔴🔴
+        const myExternalFirebaseConfig = null; 
+        /* ضع معلومات مشروعك هنا إذا كنت تملك واحداً:
+        const myExternalFirebaseConfig = { apiKey: "AIzaSy...", authDomain: "...", projectId: "...", ... };
+        */
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'indrives-cloud-v1';
+        let firebaseConfig = myExternalFirebaseConfig;
+        if (!firebaseConfig) {
+            try { if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+        }
 
-        // State & Local Arrays synced from Cloud
-        const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null };
+        // Global States
+        window.useCloud = false; 
+        const appState = { role: null, currentUser: null, priceBase: 100, activeRideId: null, map: null, rideMap: null };
         let cloudUsers = [];
         let cloudRides = [];
         let cloudApi = { instanceId: '', token: '' };
-        let lastRideCount = 0; // For Notification Ping
+        let lastRideCount = 0;
         let lastActiveStatus = '';
+        
+        let db, auth;
 
-        // UI Helpers exposed to window
+        // UI Core
         window.showScreen = (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const t = document.getElementById(id); if(t) t.classList.add('active'); window.closeSidebar(); };
         window.showToast = (msg, type='success') => { const c = document.getElementById('toast-container'); if(!c) return; const t = document.createElement('div'); t.className = `p-4 rounded-2xl shadow-2xl mb-3 text-sm font-bold flex flex-col items-center justify-center text-center transform transition-all duration-300 translate-y-[20px] opacity-0 w-full ${type==='success'?'bg-dark text-white':'bg-red-500 text-white'}`; t.innerHTML = msg; c.appendChild(t); requestAnimationFrame(()=>t.classList.remove('translate-y-[20px]','opacity-0')); setTimeout(()=>{ t.classList.add('opacity-0','-translate-y-full'); setTimeout(()=>t.remove(),300);}, 4500); };
         window.openSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '0'; o.style.display='block'; setTimeout(()=>o.style.opacity='1',10); } };
         window.closeSidebar = () => { const sb = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay'); if(sb&&o){ sb.style.right = '-100%'; o.style.opacity='0'; setTimeout(()=>o.style.display='none',300); } };
         window.moveNext = (c, n) => { if (c.value.length >= 1) { const nx = document.getElementById(n); if(nx) nx.focus(); } };
-        
-        // Sound Notification Function
-        window.playPing = () => {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator(); const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
-            } catch(e) {}
+        window.playPing = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5); } catch(e) {} };
+
+        // ---------------------------------------------------------
+        // HYBRID DATABASE ADAPTER (Bulletproof Engine)
+        // ---------------------------------------------------------
+        const AppDB = {
+            async saveUser(user) {
+                if(window.useCloud) { try { await setDoc(doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'id-app', 'public', 'data', 'users', user.id), user); return; } catch(e){} }
+                let users = JSON.parse(localStorage.getItem('id_users')||'[]'); users = users.filter(u=>u.id!==user.id); users.push(user); localStorage.setItem('id_users', JSON.stringify(users)); window.dispatchEvent(new Event('storage'));
+            },
+            async updateUser(userId, data) {
+                if(window.useCloud) { try { await updateDoc(doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'id-app', 'public', 'data', 'users', userId), data); return; } catch(e){} }
+                let users = JSON.parse(localStorage.getItem('id_users')||'[]'); let idx = users.findIndex(u=>u.id===userId); if(idx>-1) { users[idx] = {...users[idx], ...data}; localStorage.setItem('id_users', JSON.stringify(users)); window.dispatchEvent(new Event('storage')); }
+            },
+            async saveRide(ride) {
+                if(window.useCloud) { try { await setDoc(doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'id-app', 'public', 'data', 'rides', ride.id), ride); return; } catch(e){} }
+                let rides = JSON.parse(localStorage.getItem('id_rides')||'[]'); rides.push(ride); localStorage.setItem('id_rides', JSON.stringify(rides)); window.dispatchEvent(new Event('storage'));
+            },
+            async updateRide(rideId, data) {
+                if(window.useCloud) { try { await updateDoc(doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'id-app', 'public', 'data', 'rides', rideId), data); return; } catch(e){} }
+                let rides = JSON.parse(localStorage.getItem('id_rides')||'[]'); let idx = rides.findIndex(r=>r.id===rideId); if(idx>-1) { rides[idx] = {...rides[idx], ...data}; localStorage.setItem('id_rides', JSON.stringify(rides)); window.dispatchEvent(new Event('storage')); }
+            },
+            async saveApi(data) {
+                if(window.useCloud) { try { await setDoc(doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'id-app', 'public', 'data', 'settings', 'api'), data); return; } catch(e){} }
+                localStorage.setItem('id_api', JSON.stringify(data)); window.dispatchEvent(new Event('storage'));
+            }
         };
 
-        // --- Firebase Auth & Setup ---
-        const initCloud = async () => {
+        const syncLocalDB = () => {
+            if (window.useCloud) return;
+            cloudUsers = JSON.parse(localStorage.getItem('id_users') || '[]');
+            cloudRides = JSON.parse(localStorage.getItem('id_rides') || '[]');
+            cloudApi = JSON.parse(localStorage.getItem('id_api') || '{"instanceId":"", "token":""}');
+            
+            if(appState.currentUser) {
+                const fresh = cloudUsers.find(u => u.id === appState.currentUser.id);
+                if(fresh) appState.currentUser = fresh;
+            }
+            handleRidesLiveUpdate();
+        };
+
+        window.addEventListener('storage', () => syncLocalDB()); // Listen to other tabs locally
+
+        // --- System Boot ---
+        const startApp = async () => {
             try {
+                if (!firebaseConfig || firebaseConfig.apiKey === "mock-key") throw new Error("No real config.");
+                const appInstance = initializeApp(firebaseConfig);
+                auth = getAuth(appInstance);
+                db = getFirestore(appInstance);
+                
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-            } catch(e) {
-                console.error("Auth Fail", e);
-                window.showToast('خطأ في الاتصال بالسحابة', 'error');
-            }
-        };
-        initCloud();
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('screen-loading').style.display = 'none';
-                setupCloudListeners();
                 
-                // Auto-login check
+                if (auth.currentUser) {
+                    window.useCloud = true;
+                    document.getElementById('db-status-badge').innerHTML = '<i class="fas fa-cloud text-brand mr-1"></i> سحابة مفعلة';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'id-app';
+                    
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
+                        cloudUsers = []; snap.forEach(d => cloudUsers.push({ id: d.id, ...d.data() }));
+                        if(appState.currentUser) appState.currentUser = cloudUsers.find(u => u.id === appState.currentUser.id) || appState.currentUser;
+                    }, () => { throw new Error("Rules Error"); });
+
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'rides'), (snap) => {
+                        cloudRides = []; snap.forEach(d => cloudRides.push({ id: d.id, ...d.data() }));
+                        handleRidesLiveUpdate();
+                    });
+
+                    onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), (docSnap) => { 
+                        if(docSnap.exists()) cloudApi = docSnap.data(); 
+                    });
+                }
+            } catch(e) {
+                console.warn("Falling back to local sync engine.");
+                window.useCloud = false;
+                document.getElementById('db-status-badge').innerHTML = '<i class="fas fa-wifi text-gray-400 mr-1"></i> محلي (أوفلاين)';
+                syncLocalDB();
+                setInterval(syncLocalDB, 1500); // Polling for same-browser multi-tab testing
+            } finally {
+                // Boot complete
+                document.getElementById('screen-loading').style.opacity = '0';
+                setTimeout(() => document.getElementById('screen-loading').style.display = 'none', 500);
+                
                 const savedPhone = localStorage.getItem('id_session_phone');
                 if (savedPhone) {
-                    setTimeout(() => { // small delay to let users sync
+                    setTimeout(() => {
                         const u = cloudUsers.find(x => x.id === savedPhone);
                         if(u) {
                             appState.currentUser = u;
@@ -373,57 +429,36 @@
                         } else {
                             window.showScreen('screen-welcome');
                         }
-                    }, 1000);
+                    }, 800);
                 } else {
                     window.showScreen('screen-welcome');
                 }
             }
-        });
-
-        const setupCloudListeners = () => {
-            if (!auth.currentUser) return;
-            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
-            onSnapshot(usersRef, (snap) => {
-                cloudUsers = []; snap.forEach(doc => cloudUsers.push({ id: doc.id, ...doc.data() }));
-                if(appState.currentUser) {
-                    const freshUser = cloudUsers.find(u => u.id === appState.currentUser.id);
-                    if(freshUser) appState.currentUser = freshUser;
-                }
-            }, (error) => console.error(error));
-
-            const ridesRef = collection(db, 'artifacts', appId, 'public', 'data', 'rides');
-            onSnapshot(ridesRef, (snap) => {
-                cloudRides = []; snap.forEach(doc => cloudRides.push({ id: doc.id, ...doc.data() }));
-                handleRidesLiveUpdate();
-            }, (error) => console.error(error));
-
-            const apiRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api');
-            onSnapshot(apiRef, (docSnap) => { if(docSnap.exists()) cloudApi = docSnap.data(); }, (error) => console.error(error));
         };
+        startApp();
 
-        // --- Core App Logic (Mapped to Window) ---
+        // --- WhatsApp Logic ---
         window.sendWhatsAppCode = async () => {
             const fname = document.getElementById('ob-fname').value.trim();
-            const lname = document.getElementById('ob-lname').value.trim();
             const phone = document.getElementById('ob-phone').value.trim();
-            if(!fname || phone.length < 9) return window.showToast('أدخل بيانات صحيحة', 'error');
+            if(!fname || phone.length < 9) return window.showToast('أدخل الاسم ورقم الهاتف بشكل صحيح', 'error');
 
-            window.tempPhone = phone; window.tempFname = fname; window.tempLname = lname;
+            window.tempPhone = phone; window.tempFname = fname; 
             window.tempOTP = Math.floor(1000 + Math.random() * 9000).toString();
             
             const btn = document.getElementById('btn-send-wa');
             btn.innerHTML = 'جاري الإرسال...'; btn.disabled = true;
 
-            if (cloudApi.instanceId && cloudApi.token) {
+            if (cloudApi && cloudApi.instanceId && cloudApi.token) {
                 let fmtPhone = phone.replace(/\s+/g, ''); if(fmtPhone.startsWith('0')) fmtPhone = '+213'+fmtPhone.substring(1);
                 try {
                     await fetch(`https://api.ultramsg.com/${cloudApi.instanceId}/messages/chat`, {
                         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: new URLSearchParams({ token: cloudApi.token, to: fmtPhone, body: `مرحباً ${fname}\nرمزك لـ iD هو: *${window.tempOTP}*` })
                     });
-                } catch (e) { setTimeout(() => showFakeWA(), 1500); }
+                } catch (e) { setTimeout(() => showFakeWA(), 1000); }
             } else {
-                setTimeout(() => showFakeWA(), 1500);
+                setTimeout(() => showFakeWA(), 1000);
             }
             
             document.getElementById('otp-display-phone').innerText = '+213 ' + phone;
@@ -439,17 +474,15 @@
         };
 
         window.verifyOTP = async () => {
-            if (!auth.currentUser) return;
             const input = [1,2,3,4].map(i => document.getElementById(`otp-${i}`).value).join('');
             if(input === window.tempOTP || input === '0000') {
                 document.getElementById('push-notification').classList.remove('show');
                 
                 let u = cloudUsers.find(x => x.id === window.tempPhone);
                 if(!u) {
-                    u = { fname: window.tempFname, lname: window.tempLname, phone: window.tempPhone, type: 'passenger', status: 'active' };
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', window.tempPhone), u);
+                    u = { id: window.tempPhone, fname: window.tempFname, phone: window.tempPhone, type: 'passenger', status: 'active' };
+                    await AppDB.saveUser(u);
                 }
-                u.id = window.tempPhone;
                 appState.currentUser = u;
                 localStorage.setItem('id_session_phone', u.id);
                 document.getElementById('welcome-name').innerText = u.fname;
@@ -466,8 +499,9 @@
         };
 
         window.selectRole = (role) => {
+            if(!appState.currentUser) return window.showScreen('screen-welcome');
             appState.role = role;
-            document.getElementById('sidebar-name').innerText = appState.currentUser.fname;
+            document.getElementById('sidebar-name').innerText = appState.currentUser.fname || 'مستخدم';
             document.getElementById('sidebar-role').innerText = role === 'driver' ? 'سائق' : 'راكب';
             
             if(role === 'passenger') {
@@ -483,39 +517,35 @@
         };
         window.switchRole = () => window.selectRole(appState.role === 'passenger' ? 'driver' : 'passenger');
 
-        // --- Driver Flow ---
+        // --- Driver Logic ---
         window.submitDriverReg = async () => {
-            if (!auth.currentUser) return;
             const car = document.getElementById('reg-car').value;
             const mat = document.getElementById('reg-mat').value;
             if(!car || !mat) return window.showToast('أدخل بيانات السيارة', 'error');
             
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', appState.currentUser.id), {
-                type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now()
-            });
+            await AppDB.updateUser(appState.currentUser.id, { type: 'driver', car: car, matricule: mat, status: 'trial', trialStart: Date.now() });
             window.showToast('تم التسجيل وبدء الفترة التجريبية!');
-            appState.currentUser.status = 'trial'; // local update till sync
+            appState.currentUser.status = 'trial';
             checkDriverStatus(appState.currentUser);
         };
 
         const checkDriverStatus = (user) => {
             if(user.status === 'approved' || user.status === 'trial') {
-                document.getElementById('driver-status-text').innerText = user.status === 'approved' ? 'مفعل سحابياً' : 'تجريبي سحابياً';
+                document.getElementById('driver-status-text').innerText = user.status === 'approved' ? 'مفعل وجاهز' : 'تجريبي وجاهز';
                 window.showScreen('screen-driver-dash');
-                handleRidesLiveUpdate(); // force render
+                handleRidesLiveUpdate();
             } else {
                 window.showScreen('screen-driver-payment');
             }
         };
 
         window.paySubscription = async () => {
-            if (!auth.currentUser) return;
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', appState.currentUser.id), { status: 'pending_approval' });
-            window.showToast('تم إرسال طلب التفعيل.');
+            await AppDB.updateUser(appState.currentUser.id, { status: 'pending_approval' });
+            window.showToast('تم إرسال طلب التفعيل للإدارة.');
             window.showScreen('screen-welcome');
         };
 
-        // --- Passenger Flow ---
+        // --- Passenger Logic ---
         window.calculateEstimatedPrice = () => {
             const dest = document.getElementById('pass-dest').value;
             if(dest.length > 2) {
@@ -532,16 +562,16 @@
         window.adjPrice = (val) => { appState.priceBase = Math.max(50, appState.priceBase + val); document.getElementById('pass-price').innerText = appState.priceBase; };
 
         window.requestRideLive = async () => {
-            if (!auth.currentUser) return;
             const dest = document.getElementById('pass-dest').value;
             if(!dest) return window.showToast('أدخل الوجهة', 'error');
             
             const rideId = 'R' + Date.now();
             appState.activeRideId = rideId;
             
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
+            await AppDB.saveRide({
+                id: rideId,
                 passPhone: appState.currentUser.phone,
-                passName: appState.currentUser.fname + ' ' + (appState.currentUser.lname || ''),
+                passName: appState.currentUser.fname || 'راكب',
                 dest: dest,
                 price: appState.priceBase,
                 status: 'pending',
@@ -549,26 +579,30 @@
             });
 
             window.showScreen('screen-choose-driver');
-            window.playPing(); // sound for the passenger request sent
+            window.playPing();
         };
 
         window.cancelRideRequest = async () => {
-            if (!auth.currentUser) return;
             if(appState.activeRideId) {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', appState.activeRideId), { status: 'cancelled' });
+                await AppDB.updateRide(appState.activeRideId, { status: 'cancelled' });
+                appState.activeRideId = null;
             }
             window.showScreen('screen-passenger-home');
         };
 
-        // --- The Magic: Live Cloud Sync (Replaces Polling) ---
+        // --- Live Matchmaking Engine ---
         const handleRidesLiveUpdate = () => {
             if(appState.role === 'driver') {
+                const now = Date.now();
+                // Local cleanup of ghosts
+                cloudRides.forEach(r => { if(r.status==='pending' && (now - r.timestamp > 900000)) { AppDB.updateRide(r.id, {status:'cancelled'}); }});
+
                 const pendingRides = cloudRides.filter(r => r.status === 'pending');
                 const list = document.getElementById('driver-rides-list');
                 const empty = document.getElementById('driver-empty-state');
                 
                 if(pendingRides.length > lastRideCount) {
-                    window.playPing(); // IMPORTANT: Notification to driver!
+                    window.playPing();
                     window.showToast('طلب جديد متاح! 🚨', 'success');
                 }
                 lastRideCount = pendingRides.length;
@@ -586,7 +620,7 @@
                         </div>
                         <div class="flex justify-between items-center pt-4 border-t border-gray-100">
                             <span class="text-3xl font-black text-dark" dir="ltr">${r.price} DZD</span>
-                            <button onclick="window.driverAcceptRide('${r.id}')" class="bg-green-500 text-white font-bold px-8 py-3 rounded-xl hover:bg-green-600 border-none cursor-pointer">قبول الطلب</button>
+                            <button onclick="window.driverAcceptRide('${r.id}')" class="bg-green-500 text-white font-bold px-8 py-3 rounded-xl hover:bg-green-600 border-none cursor-pointer shadow-md">قبول الطلب</button>
                         </div>
                     </div>`;
                 });
@@ -597,32 +631,31 @@
                 if(myRide) {
                     if(myRide.status === 'accepted' && lastActiveStatus !== 'accepted') {
                         lastActiveStatus = 'accepted';
-                        window.playPing(); // IMPORTANT: Notification to passenger!
+                        window.playPing();
                         window.showToast('تم قبول طلبك! السائق في الطريق 🚕', 'success');
                         setupActiveRideScreen(myRide, 'passenger');
-                    } else if (myRide.status === 'cancelled') {
-                        window.showToast('تم إلغاء الطلب.', 'error');
+                    } else if (myRide.status === 'cancelled' && lastActiveStatus !== 'cancelled') {
+                        lastActiveStatus = 'cancelled';
+                        window.showToast('انتهت صلاحية الطلب أو ألغي.', 'error');
                         window.showScreen('screen-passenger-home');
                         appState.activeRideId = null;
-                        lastActiveStatus = '';
                     }
                 }
             }
         };
 
         window.driverAcceptRide = async (rideId) => {
-            if (!auth.currentUser) return;
             const r = cloudRides.find(x => x.id === rideId);
             if(r && r.status === 'pending') {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', rideId), {
+                await AppDB.updateRide(rideId, {
                     status: 'accepted',
                     driverPhone: appState.currentUser.phone,
-                    driverName: appState.currentUser.fname,
+                    driverName: appState.currentUser.fname || 'سائق',
                     driverCar: appState.currentUser.car,
                     driverMat: appState.currentUser.matricule
                 });
                 appState.activeRideId = rideId;
-                const updatedRide = cloudRides.find(x => x.id === rideId); // get latest
+                const updatedRide = cloudRides.find(x => x.id === rideId);
                 setupActiveRideScreen(updatedRide || r, 'driver');
             } else {
                 window.showToast('عذراً، أخذها سائق آخر أو ألغاها الراكب.', 'error');
@@ -638,7 +671,7 @@
 
             if(viewAs === 'passenger') {
                 document.getElementById('active-status-text').innerText = 'السائق متوجه إليك';
-                document.getElementById('active-partner-name').innerText = ride.driverName;
+                document.getElementById('active-partner-name').innerText = ride.driverName || 'سائق';
                 document.getElementById('active-partner-phone').innerText = ride.driverPhone;
                 document.getElementById('driver-car-info').classList.remove('hidden');
                 document.getElementById('ride-dest-info').classList.add('hidden');
@@ -646,7 +679,7 @@
                 document.getElementById('active-driver-plate').innerText = ride.driverMat;
             } else {
                 document.getElementById('active-status-text').innerText = 'أنت متوجه للراكب';
-                document.getElementById('active-partner-name').innerText = ride.passName;
+                document.getElementById('active-partner-name').innerText = ride.passName || 'راكب';
                 document.getElementById('active-partner-phone').innerText = ride.passPhone;
                 document.getElementById('driver-car-info').classList.add('hidden');
                 document.getElementById('ride-dest-info').classList.remove('hidden');
@@ -655,9 +688,8 @@
         };
 
         window.finishRide = async () => {
-            if (!auth.currentUser) return;
             if(appState.activeRideId) {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rides', appState.activeRideId), { status: 'completed' });
+                await AppDB.updateRide(appState.activeRideId, { status: 'completed' });
                 appState.activeRideId = null;
                 lastActiveStatus = '';
             }
@@ -675,10 +707,10 @@
             } catch(e){}
         };
 
-        // --- Admin Panel (Cloud AI) ---
+        // --- Admin Panel ---
         window.loginAdmin = () => {
             if(document.getElementById('admin-pass').value === 'Ha15041978@') {
-                window.showScreen('screen-admin-dashboard'); window.switchAdminTab('ai');
+                window.showScreen('screen-admin-dashboard'); window.switchAdminTab('overview');
             } else window.showToast('رمز خاطئ', 'error');
         };
 
@@ -693,57 +725,54 @@
                 const passengers = cloudUsers.filter(u => u.type === 'passenger');
                 const drivers = cloudUsers.filter(u => u.type === 'driver');
                 content.innerHTML = `
-                    <h3 class="font-black text-xl mb-4 text-dark">السائقين المسجلين بالسحابة (${drivers.length})</h3>
+                    <h3 class="font-black text-xl mb-4 text-dark">السائقين (${drivers.length})</h3>
                     <div class="space-y-3 mb-8">
                         ${drivers.map(d => {
                             let badge = d.status === 'trial' ? '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">تجريبي</span>' : 
-                                        d.status === 'pending_approval' ? `<button onclick="window.adminApproveDriver('${d.id}')" class="bg-green-500 text-white px-3 py-1 rounded shadow text-xs cursor-pointer border-none">تفعيل</button>` : 
+                                        d.status === 'pending_approval' ? `<button onclick="window.adminApproveDriver('${d.id}')" class="bg-green-500 text-white px-3 py-1 rounded shadow text-xs cursor-pointer border-none font-bold">تفعيل</button>` : 
                                         '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">مفعل</span>';
-                            return `<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><div><p class="font-bold">${d.fname} ${d.lname||''}</p><p class="text-xs text-gray-500 font-mono" dir="ltr">${d.phone}</p></div>${badge}</div>`
+                            return `<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><div><p class="font-bold text-lg">${d.fname||'سائق'}</p><p class="text-xs text-gray-500 font-mono" dir="ltr">${d.phone}</p><p class="text-xs text-gray-400 mt-1">${d.car} | ${d.matricule}</p></div>${badge}</div>`
                         }).join('')}
                     </div>
                     <h3 class="font-black text-xl mb-4 text-dark">الركاب (${passengers.length})</h3>
-                    <div class="space-y-3">${passengers.map(p => `<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><span class="font-bold">${p.fname}</span><span class="text-sm font-mono text-gray-500" dir="ltr">${p.phone}</span></div>`).join('')}</div>
+                    <div class="space-y-3">${passengers.map(p => `<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"><span class="font-bold">${p.fname||'راكب'}</span><span class="text-sm font-mono text-gray-500" dir="ltr">${p.phone}</span></div>`).join('')}</div>
                 `;
             } else if(tab === 'ai') {
                 let totalRev = cloudRides.filter(r => r.status === 'completed').reduce((acc, r) => acc + r.price, 0);
                 let activeRides = cloudRides.filter(r => r.status === 'accepted' || r.status === 'pending').length;
-                let platformHealth = cloudUsers.filter(u=>u.type==='driver').length > 0 ? "متصل ومستقر 🟢" : "يعمل - بانتظار سائقين 🟡";
+                let platformHealth = window.useCloud ? "سحابي ومستقر 🟢" : "محلي (تزامني) 🟡";
                 
                 content.innerHTML = `
                     <div class="bg-dark text-white p-6 rounded-2xl shadow-xl mb-6 relative overflow-hidden">
                         <i class="fas fa-robot absolute -left-4 -bottom-4 text-8xl text-white opacity-10"></i>
-                        <h3 class="font-black text-xl mb-2 flex items-center gap-2"><i class="fas fa-bolt text-yellow-400"></i> AI المراقبة السحابية الحية</h3>
-                        <p class="text-sm text-gray-400 mb-6">البيانات تُسحب مباشرة من خوادم Google Firebase لحظة بلحظة:</p>
+                        <h3 class="font-black text-xl mb-2 flex items-center gap-2"><i class="fas fa-bolt text-yellow-400"></i> AI المراقبة الحية</h3>
+                        <p class="text-sm text-gray-400 mb-6">البيانات تُسحب مباشرة لحظة بلحظة:</p>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20"><p class="text-xs font-bold mb-1">الرحلات الآن</p><p class="text-2xl font-black text-green-400" dir="ltr">${activeRides} 🚗</p></div>
                             <div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20"><p class="text-xs font-bold mb-1">الأموال المتداولة</p><p class="text-2xl font-black text-brandLight" dir="ltr">${totalRev} DZD</p></div>
                         </div>
                     </div>
-                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm"><h4 class="font-bold text-dark mb-4 border-b pb-2">تقرير النظام</h4><ul class="text-sm space-y-3 font-semibold"><li class="flex justify-between"><span>الخادم السحابي:</span><strong dir="ltr">${platformHealth}</strong></li><li class="flex justify-between"><span>الرحلات المكتملة:</span><strong class="text-dark">${cloudRides.filter(r=>r.status==='completed').length}</strong></li></ul></div>
+                    <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm"><h4 class="font-bold text-dark mb-4 border-b pb-2">تقرير النظام</h4><ul class="text-sm space-y-3 font-semibold"><li class="flex justify-between"><span>بيئة العمل الحالية:</span><strong dir="ltr">${platformHealth}</strong></li><li class="flex justify-between"><span>الرحلات المكتملة:</span><strong class="text-dark">${cloudRides.filter(r=>r.status==='completed').length}</strong></li></ul></div>
                 `;
             } else {
                 content.innerHTML = `
                     <div class="space-y-4">
+                        <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-xs font-bold mb-4">انسخ Instance و Token من حسابك في Ultramsg ليتم إرسال الرسائل الحقيقية.</div>
                         <div><label class="block text-sm font-bold mb-2">Instance ID (Ultramsg)</label><input type="text" id="api-instance" value="${cloudApi.instanceId||''}" class="id-input font-mono" dir="ltr"></div>
                         <div><label class="block text-sm font-bold mb-2">Token</label><input type="text" id="api-token" value="${cloudApi.token||''}" class="id-input font-mono" dir="ltr"></div>
-                        <button onclick="window.saveApi()" class="btn-primary py-4 mt-2 border-none">حفظ بالسحابة</button>
+                        <button onclick="window.saveApi()" class="btn-primary py-4 mt-2 border-none">حفظ التغييرات</button>
                     </div>
                 `;
             }
         };
 
         window.saveApi = async () => {
-            if (!auth.currentUser) return;
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'api'), {
-                instanceId: document.getElementById('api-instance').value.trim(), token: document.getElementById('api-token').value.trim()
-            });
-            window.showToast('تم حفظ API بالسحابة بنجاح!');
+            await AppDB.saveApi({ instanceId: document.getElementById('api-instance').value.trim(), token: document.getElementById('api-token').value.trim() });
+            window.showToast('تم الحفظ بنجاح!');
         };
 
         window.adminApproveDriver = async (docId) => {
-            if (!auth.currentUser) return;
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', docId), { status: 'approved' });
+            await AppDB.updateUser(docId, { status: 'approved' });
             window.showToast('تم تفعيل السائق!');
             window.switchAdminTab('overview');
         };
